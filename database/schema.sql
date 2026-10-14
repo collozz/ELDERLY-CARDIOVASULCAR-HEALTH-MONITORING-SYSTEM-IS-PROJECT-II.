@@ -1,15 +1,4 @@
--- =====================================================================
--- Elderly Heart Rate Monitoring and Emergency Alert System
--- MySQL database schema (built from the ERD / database schema diagram)
--- Gitonga Cyrus Collins, 167071
---
--- phpMyAdmin: click YOUR database on the left first, then Import this
--- file, then Import seed.sql the same way. The tables are created in
--- whichever database is selected, so the database can have any name.
---
--- Running this file again deletes the tables and their data, then
--- recreates them empty.
--- =====================================================================
+-- Database tables
 
 SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS tbl_notification, tbl_alert, tbl_health_reading, tbl_device,
@@ -18,9 +7,7 @@ DROP TABLE IF EXISTS tbl_notification, tbl_alert, tbl_health_reading, tbl_device
   tbl_activity_log, tbl_user, tbl_role;
 SET FOREIGN_KEY_CHECKS = 1;
 
--- ---------------------------------------------------------------------
 -- 1. Users and roles
--- ---------------------------------------------------------------------
 
 CREATE TABLE tbl_role (
   role_id      INT          NOT NULL AUTO_INCREMENT,
@@ -56,10 +43,7 @@ CREATE TABLE tbl_activity_log (
     REFERENCES tbl_user (user_id) ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- ---------------------------------------------------------------------
--- 2. User types ("is a" tbl_user). Each user has at most one profile
---    of each type, so user_id is UNIQUE in these tables.
--- ---------------------------------------------------------------------
+-- 2. User profiles
 
 CREATE TABLE tbl_caregiver (
   caregiver_id  INT         NOT NULL AUTO_INCREMENT,
@@ -99,9 +83,7 @@ CREATE TABLE tbl_healthcare_provider (
     REFERENCES tbl_user (user_id) ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- ---------------------------------------------------------------------
--- 3. Who looks after which elderly person (many-to-many)
--- ---------------------------------------------------------------------
+-- 3. Care assignments
 
 CREATE TABLE tbl_caregiver_assignment (
   assignment_id  INT      NOT NULL AUTO_INCREMENT,
@@ -129,9 +111,7 @@ CREATE TABLE tbl_provider_assignment (
     REFERENCES tbl_elderly_profile (elderly_id) ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- ---------------------------------------------------------------------
--- 4. Thresholds: one row per vital sign per elderly person
--- ---------------------------------------------------------------------
+-- 4. Thresholds
 
 CREATE TABLE tbl_threshold (
   threshold_id  INT          NOT NULL AUTO_INCREMENT,
@@ -151,9 +131,7 @@ CREATE TABLE tbl_threshold (
     REFERENCES tbl_healthcare_provider (provider_id) ON UPDATE CASCADE ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
--- ---------------------------------------------------------------------
--- 5. Devices and the readings they record
--- ---------------------------------------------------------------------
+-- 5. Devices and readings
 
 CREATE TABLE tbl_device (
   device_id       INT         NOT NULL AUTO_INCREMENT,
@@ -185,10 +163,7 @@ CREATE TABLE tbl_health_reading (
     REFERENCES tbl_device (device_id) ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- ---------------------------------------------------------------------
--- 6. Alerts and the notifications they generate
---    reading_id is NULL for panic-button alerts (no reading involved).
--- ---------------------------------------------------------------------
+-- 6. Alerts and notifications
 
 CREATE TABLE tbl_alert (
   alert_id      INT          NOT NULL AUTO_INCREMENT,

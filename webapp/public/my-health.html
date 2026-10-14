@@ -51,7 +51,7 @@
       }
     }
 
-    // Press-and-hold so the alert is not sent by accident
+    // Panic button
     function wirePanic() {
       const btn = $('#panic');
       const fill = $('#panic-fill');
@@ -96,7 +96,7 @@
       }
       btn.addEventListener('pointerdown', begin);
       ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => btn.addEventListener(ev, cancel));
-      // Keyboard: hold Space or Enter
+      // Keyboard
       btn.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) begin(e); });
       btn.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') cancel(); });
     }

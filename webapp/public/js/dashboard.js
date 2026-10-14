@@ -1,4 +1,4 @@
-// Caregiver / provider / admin dashboard (wireframe: "Caregiver dashboard")
+// Dashboard page
 
 let people = [];
 
@@ -110,7 +110,7 @@ async function renderOverview() {
       api('/api/patients').then((d) => { people = d.people; renderPeople(); });
     },
   });
-  // Keep "x min ago" texts fresh and the trend current
+  // Refresh
   setInterval(renderPeople, 30000);
   setInterval(renderTrend, 5 * 60000);
   window.addEventListener('resize', renderTrend);

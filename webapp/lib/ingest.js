@@ -1,13 +1,11 @@
-// Every reading from the ESP32 (or the simulator) comes through here:
-// save it, compare it with the person's thresholds, raise an alert if needed,
-// and push it to the open dashboards.
+// Save and check readings
 
 const db = require('../db');
 const config = require('../config');
 const live = require('./live');
 const { createAlert } = require('./alerts');
 
-// Compare a reading with the person's thresholds from tbl_threshold
+// Check against thresholds
 async function evaluate(elderlyId, reading) {
   const thresholds = await db.query(
     `SELECT vital_type, min_value, max_value FROM tbl_threshold WHERE elderly_id = ?
@@ -64,7 +62,7 @@ async function saveReading(raw, source) {
   const check = await evaluate(device.elderly_id, saved);
   let alert = null;
   if (check.severity) {
-    // Don't flood caregivers: skip if a recent threshold alert is still open
+    // Skip if a recent alert is open
     const recent = await db.one(
       `SELECT alert_id FROM tbl_alert WHERE elderly_id = ? AND alert_type = 'Threshold' AND status <> 'Resolved'
        AND triggered_at > NOW() - INTERVAL ? SECOND`,

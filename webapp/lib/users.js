@@ -1,4 +1,4 @@
-// Creating users together with their profile (used by Register and by the admin "Add user" form).
+// Create users
 
 const bcrypt = require('bcryptjs');
 const db = require('../db');
@@ -11,7 +11,7 @@ function clean(v) {
   return typeof v === 'string' ? v.trim() : v;
 }
 
-// Returns an error message, or null if the form is valid
+// Validate form
 function validate(f) {
   if (!f.full_name) return 'Enter the full name.';
   if (!f.email || !EMAIL_RE.test(f.email)) return 'Enter a valid email address.';

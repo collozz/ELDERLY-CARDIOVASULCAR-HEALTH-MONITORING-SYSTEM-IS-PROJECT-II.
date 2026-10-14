@@ -1,4 +1,4 @@
-// Login checks and "who can see which elderly person".
+// Login and access checks
 
 const db = require('../db');
 
@@ -24,8 +24,7 @@ function requireRole(...roles) {
   };
 }
 
-// The elderly_id values this user is allowed to see.
-// Admin: everyone. Elderly person: themself. Caregiver/provider: people assigned to them.
+// Elderly people this user can see
 async function visibleElderlyIds(user) {
   let rows;
   if (user.role_name === ROLES.ADMIN) {
@@ -54,7 +53,7 @@ async function canSeeElderly(user, elderlyId) {
   return (await visibleElderlyIds(user)).includes(Number(elderlyId));
 }
 
-// Builds "IN (?, ?, ?)" safely; returns "IN (NULL)" for an empty list
+// SQL IN list
 function inList(ids) {
   return ids.length ? `IN (${ids.map(() => '?').join(', ')})` : 'IN (NULL)';
 }

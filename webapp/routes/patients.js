@@ -1,4 +1,4 @@
-// Elderly profiles, their readings and thresholds, and the panic button
+// Patient routes
 
 const express = require('express');
 const db = require('../db');
@@ -10,7 +10,7 @@ const { createAlert } = require('../lib/alerts');
 const router = express.Router();
 router.use(requireLogin);
 
-// Stop here with 403 unless the user may see this elderly person
+// Access check
 async function guard(req, res) {
   if (!(await canSeeElderly(req.session.user, req.params.id))) {
     res.status(403).json({ error: 'You are not assigned to this person.' });
@@ -19,7 +19,7 @@ async function guard(req, res) {
   return true;
 }
 
-// Everyone this user can see, with their latest reading and open alerts
+// Patient list
 router.get('/', async (req, res) => {
   const ids = await visibleElderlyIds(req.session.user);
   const people = await db.query(
@@ -41,7 +41,7 @@ router.get('/', async (req, res) => {
   res.json({ people });
 });
 
-// Daily average heart rate for the last 7 days, for everyone this user can see
+// Weekly trend
 router.get('/weekly-trend', async (req, res) => {
   const ids = await visibleElderlyIds(req.session.user);
   const rows = await db.query(
@@ -91,7 +91,7 @@ router.get('/:id', async (req, res) => {
   res.json({ profile, thresholds, devices, caregivers, providers, vitals: config.VITALS });
 });
 
-// Readings for the trend chart. Over the last N hours, averaged per minute.
+// Readings for chart
 router.get('/:id/readings', async (req, res) => {
   if (!(await guard(req, res))) return;
   const hours = Math.min(Math.max(Number(req.query.hours) || 24, 1), 168);
@@ -114,7 +114,7 @@ router.get('/:id/readings', async (req, res) => {
   res.json({ perMinute: rows, recent: latest.reverse(), check: last ? await evaluate(req.params.id, last) : null });
 });
 
-// Edit the profile (anyone who can see the person)
+// Update profile
 router.put('/:id', async (req, res) => {
   if (!(await guard(req, res))) return;
   const f = req.body;
@@ -135,7 +135,7 @@ router.put('/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-// Set thresholds (healthcare provider or administrator)
+// Update thresholds
 router.put('/:id/thresholds', requireRole(ROLES.PROVIDER, ROLES.ADMIN), async (req, res) => {
   if (!(await guard(req, res))) return;
   const provider = await db.one('SELECT provider_id FROM tbl_healthcare_provider WHERE user_id = ?', [
@@ -161,7 +161,7 @@ router.put('/:id/thresholds', requireRole(ROLES.PROVIDER, ROLES.ADMIN), async (r
   res.json({ ok: true });
 });
 
-// Panic button: the elderly person presses it on their own page
+// Panic button
 router.post('/panic', requireRole(ROLES.ELDERLY), async (req, res) => {
   const elderlyId = req.session.user.elderly_id;
   if (!elderlyId) return res.status(400).json({ error: 'No elderly profile found for this account.' });

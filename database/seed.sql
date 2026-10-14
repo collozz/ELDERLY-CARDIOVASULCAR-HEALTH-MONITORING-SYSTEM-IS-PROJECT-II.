@@ -1,11 +1,6 @@
--- =====================================================================
--- Sample data for demos and testing (fictional people).
--- phpMyAdmin: with YOUR database selected on the left, Import this file
--- after schema.sql.
--- Every sample account's password is: Password123
--- =====================================================================
+-- Sample data (password for all accounts: Password123)
 
-SET @pw = '$2a$10$qvZSsPYfEFZWwHOnFDgOfeiGzaMl/9nGMpTOuACfqkExZbsmCHbza'; -- bcrypt of Password123
+SET @pw = '$2a$10$qvZSsPYfEFZWwHOnFDgOfeiGzaMl/9nGMpTOuACfqkExZbsmCHbza';
 
 INSERT INTO tbl_role (role_id, role_name, description) VALUES
   (1, 'Administrator',       'Manages users, devices and system settings'),
@@ -34,7 +29,7 @@ INSERT INTO tbl_healthcare_provider (provider_id, user_id, specialization, licen
 INSERT INTO tbl_caregiver_assignment (caregiver_id, elderly_id) VALUES (1, 1), (1, 2);
 INSERT INTO tbl_provider_assignment  (provider_id, elderly_id)  VALUES (1, 1), (1, 2);
 
--- Same values as server/config.js in the prototype
+-- Thresholds
 INSERT INTO tbl_threshold (elderly_id, provider_id, vital_type, min_value, max_value) VALUES
   (1, 1, 'heart_rate_bpm', 50.0, 100.0),
   (1, 1, 'temperature_c',  35.5,  37.8),

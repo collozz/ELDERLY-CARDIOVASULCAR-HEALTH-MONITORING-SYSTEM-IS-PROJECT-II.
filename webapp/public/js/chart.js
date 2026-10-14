@@ -1,12 +1,4 @@
-// Small line-chart helper drawn on <canvas> (no internet or library needed).
-//
-// lineChart(canvas, {
-//   series: [{ name, color, points: [{ x: Date, y: Number }] }],
-//   band: { lo, hi },      // optional shaded "normal range"
-//   unit: 'BPM',
-//   xFormat: 'time' | 'day',
-//   xRange: { from: Date, to: Date },  // optional fixed x range; with 'day' gives one tick per day
-// })
+// Line chart
 
 const CHART_COLORS = ['#b91c1c', '#1d4ed8', '#047857', '#7c3aed', '#c2410c', '#0f766e'];
 
@@ -46,13 +38,13 @@ function lineChart(canvas, opts) {
   const x = (v) => pad.l + ((+v - xMin) / (xMax - xMin)) * (W - pad.l - pad.r);
   const y = (v) => pad.t + (1 - (v - yMin) / (yMax - yMin)) * (H - pad.t - pad.b);
 
-  // Normal range band
+  // Normal range
   if (opts.band) {
     ctx.fillStyle = 'rgba(34, 197, 94, 0.10)';
     ctx.fillRect(pad.l, y(opts.band.hi), W - pad.l - pad.r, y(opts.band.lo) - y(opts.band.hi));
   }
 
-  // Y grid and labels
+  // Y axis
   ctx.strokeStyle = '#e5e7eb';
   ctx.fillStyle = '#6b7280';
   ctx.textAlign = 'right';
@@ -68,7 +60,7 @@ function lineChart(canvas, opts) {
     ctx.fillText(v.toFixed(span < 5 ? 1 : 0), pad.l - 6, yy);
   }
 
-  // X labels: one per day for day charts, evenly spaced times otherwise
+  // X axis
   ctx.textBaseline = 'top';
   let xs = [];
   if (opts.xFormat === 'day') {
@@ -87,7 +79,6 @@ function lineChart(canvas, opts) {
       : t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const xx = x(t);
     const w = ctx.measureText(label).width;
-    // keep labels inside the canvas
     ctx.textAlign = xx + w / 2 > W ? 'right' : xx - w / 2 < 0 ? 'left' : 'center';
     ctx.fillText(label, ctx.textAlign === 'right' ? W - 2 : ctx.textAlign === 'left' ? 2 : xx, H - pad.b + 8);
   });
@@ -101,7 +92,7 @@ function lineChart(canvas, opts) {
     ctx.beginPath();
     pts.forEach((p, j) => (j ? ctx.lineTo(x(p.x), y(p.y)) : ctx.moveTo(x(p.x), y(p.y))));
     ctx.stroke();
-    // Emphasise the latest point
+    // Latest point
     const last = pts[pts.length - 1];
     ctx.fillStyle = color;
     ctx.beginPath();

@@ -1,6 +1,4 @@
-// Elderly Heart Rate Monitoring and Emergency Alert System - prototype server (Node.js + Express)
-//
-// Data path: Wokwi ESP32 -> MQTT broker -> this server -> dashboard (Server-Sent Events)
+// 30% prototype server
 
 const express = require('express');
 const mqtt = require('mqtt');
@@ -12,15 +10,14 @@ const SIMULATE_ONLY = process.argv.includes('--simulate');
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
 
-const history = []; // latest readings, newest last
-const alerts = []; // latest alerts, newest first
-const clients = new Set(); // open dashboard connections
-let lastDeviceReading = 0; // time of last reading from Wokwi
+const history = [];
+const alerts = [];
+const clients = new Set();
+let lastDeviceReading = 0;
 let mqttConnected = false;
 let lastMqttError = '';
 
-// ---------- Vital-sign status detection ----------
-// Each vital is compared with its configured min_value / max_value.
+// Check readings against thresholds
 function evaluate(reading) {
   const statuses = {};
   const problems = [];
@@ -37,7 +34,7 @@ function evaluate(reading) {
   return { statuses, overall: problems.length ? 'alert' : 'normal', problems };
 }
 
-// ---------- Handle each new reading ----------
+// Handle a new reading
 function handleReading(raw, source) {
   const reading = {
     patient_id: raw.patient_id || 'P001',
@@ -77,7 +74,7 @@ function connectionInfo() {
   return { mqttConnected, deviceLive, simulateOnly: SIMULATE_ONLY };
 }
 
-// ---------- MQTT: readings from the Wokwi ESP32 ----------
+// MQTT readings from Wokwi
 if (!SIMULATE_ONLY) {
   const client = mqtt.connect(config.MQTT_URL, { reconnectPeriod: 3000 });
   client.on('connect', () => {
@@ -104,7 +101,7 @@ if (!SIMULATE_ONLY) {
   });
 }
 
-// ---------- Built-in simulator (backup when Wokwi is not sending) ----------
+// Backup simulator
 const sim = { heart_rate_bpm: 75, temperature_c: 36.6, spo2_percent: 97, episode: 0 };
 const rand = (lo, hi) => lo + Math.random() * (hi - lo);
 const drift = (v, target, step, pull) => v + rand(-step, step) + (target - v) * pull;
@@ -134,17 +131,17 @@ setInterval(() => {
   broadcast('status', connectionInfo());
 }, config.READ_INTERVAL_MS);
 
-// ---------- HTTP API ----------
+// API routes
 app.get('/api/config', (_req, res) => res.json({ thresholds: config.THRESHOLDS }));
 app.get('/api/latest', (_req, res) => res.json({ history, alerts, status: connectionInfo() }));
 
-// Demo helper: force an abnormal episode in the built-in simulator
+// Start an abnormal episode
 app.post('/api/simulate-episode', (_req, res) => {
   sim.episode = 8;
   res.json({ ok: true });
 });
 
-// Live stream of readings to the dashboard
+// Live updates
 app.get('/events', (req, res) => {
   res.set({ 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
   res.flushHeaders();

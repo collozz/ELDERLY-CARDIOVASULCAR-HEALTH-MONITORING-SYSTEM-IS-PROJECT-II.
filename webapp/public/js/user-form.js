@@ -1,5 +1,4 @@
-// The "create a user" form, shared by Register and the admin "Add user" tab.
-// Shows the extra fields that belong to the chosen role.
+// User form
 
 function userFormHtml({ includeAdmin = false } = {}) {
   return `
@@ -53,7 +52,7 @@ function wireUserForm(form) {
     for (const fs of $$('fieldset[data-role]', form)) {
       const on = fs.dataset.role === select.value;
       fs.hidden = !on;
-      // Required fields only apply to the visible role section
+      // Required fields
       for (const input of $$('input', fs)) {
         if (['date_of_birth', 'emergency_contact_name', 'emergency_contact_phone', 'license_number'].includes(input.name)) {
           input.required = on;

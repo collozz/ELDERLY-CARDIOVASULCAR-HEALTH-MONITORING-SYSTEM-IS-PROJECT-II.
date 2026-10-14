@@ -1,4 +1,4 @@
-// Administrator: users, devices, assignments and the activity log
+// Admin routes
 
 const express = require('express');
 const db = require('../db');
@@ -19,7 +19,7 @@ router.get('/overview', async (req, res) => {
   res.json({ counts });
 });
 
-// ---------- Users ----------
+// Users
 router.get('/users', async (req, res) => {
   const users = await db.query(
     `SELECT u.user_id, u.full_name, u.email, u.phone_number, u.created_at, r.role_name
@@ -46,7 +46,7 @@ router.delete('/users/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-// Lists for the dropdowns on the admin forms
+// Dropdown options
 router.get('/options', async (req, res) => {
   const elderly = await db.query(
     `SELECT e.elderly_id AS id, u.full_name AS name FROM tbl_elderly_profile e
@@ -63,7 +63,7 @@ router.get('/options', async (req, res) => {
   res.json({ elderly, caregivers, providers });
 });
 
-// ---------- Devices ----------
+// Devices
 router.get('/devices', async (req, res) => {
   const devices = await db.query(
     `SELECT d.*, u.full_name FROM tbl_device d
@@ -100,7 +100,7 @@ router.put('/devices/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-// ---------- Caregiver / provider assignments ----------
+// Assignments
 const ASSIGN = {
   caregiver: { table: 'tbl_caregiver_assignment', col: 'caregiver_id' },
   provider: { table: 'tbl_provider_assignment', col: 'provider_id' },
@@ -146,7 +146,7 @@ router.delete('/assignments/:type/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-// ---------- Activity log ----------
+// Activity log
 router.get('/activity', async (req, res) => {
   const rows = await db.query(
     `SELECT l.log_id, l.action, l.details, l.logged_at, u.full_name

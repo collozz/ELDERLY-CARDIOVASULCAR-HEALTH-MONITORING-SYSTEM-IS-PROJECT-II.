@@ -1,11 +1,10 @@
-// Creating alerts and the notifications (dashboard + SMS) that go with them.
+// Alerts and notifications
 
 const db = require('../db');
 const config = require('../config');
 const live = require('./live');
 
-// Everyone who should hear about this elderly person's alerts:
-// assigned caregivers (SMS + dashboard) and assigned providers (dashboard).
+// People to notify
 async function recipients(elderlyId) {
   const caregivers = await db.query(
     `SELECT u.user_id, u.full_name, u.phone_number FROM tbl_caregiver_assignment ca
@@ -22,13 +21,13 @@ async function recipients(elderlyId) {
   return { caregivers, providers };
 }
 
-// SMS gateway. In 'simulate' mode the message is printed and marked as Sent.
+// Send SMS
 async function sendSms(phone, message) {
   if (config.SMS_MODE === 'simulate') {
     console.log(`[SMS to ${phone || 'no phone'}] ${message}`);
     return phone ? 'Sent' : 'Failed';
   }
-  // A real gateway (e.g. Africa's Talking) would be called here.
+  // SMS API goes here
   return 'Pending';
 }
 

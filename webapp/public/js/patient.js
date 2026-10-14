@@ -1,4 +1,4 @@
-// One elderly person's page (wireframe: "Elderly vitals")
+// Patient page
 
 const id = Number(new URLSearchParams(location.search).get('id'));
 let user;
@@ -173,7 +173,7 @@ async function load() {
     reading(r) {
       if (r.elderly_id !== id) return;
       showReading(r, r);
-      // Refresh the chart at most every 15 seconds
+      // Refresh chart
       if (Date.now() - lastChart > 15000) { lastChart = Date.now(); drawChart(); }
     },
     alert(a) { if (a.elderly_id === id) showAlerts(); },

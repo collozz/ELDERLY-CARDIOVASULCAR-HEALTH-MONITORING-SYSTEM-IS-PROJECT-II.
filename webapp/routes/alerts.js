@@ -1,4 +1,4 @@
-// Alerts & notifications page
+// Alert routes
 
 const express = require('express');
 const db = require('../db');
@@ -34,7 +34,7 @@ router.get('/', async (req, res) => {
      ORDER BY a.triggered_at DESC, a.alert_id DESC LIMIT 200`,
     params
   );
-  // Delivery status per channel, e.g. { SMS: 'Sent', Dashboard: 'Sent' }
+  // Delivery status
   for (const a of alerts) {
     const rows = await db.query(
       `SELECT n.channel, n.status, u.full_name AS recipient FROM tbl_notification n
@@ -46,7 +46,7 @@ router.get('/', async (req, res) => {
   res.json({ alerts });
 });
 
-// Acknowledge or resolve an alert
+// Update alert status
 router.post('/:id/status', requireRole(ROLES.CAREGIVER, ROLES.PROVIDER, ROLES.ADMIN), async (req, res) => {
   const status = req.body.status;
   if (!['Acknowledged', 'Resolved'].includes(status)) return res.status(400).json({ error: 'Unknown status.' });

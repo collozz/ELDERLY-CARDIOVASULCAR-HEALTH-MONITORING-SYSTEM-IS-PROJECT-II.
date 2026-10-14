@@ -1,4 +1,4 @@
-// Reports: summary statistics for a person and date range, plus CSV export
+// Report routes
 
 const express = require('express');
 const db = require('../db');
@@ -9,7 +9,7 @@ router.use(requireLogin);
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-// Validates ?elderly_id=&from=&to= and returns them, or sends an error
+// Validate filters
 async function params(req, res) {
   const { elderly_id, from, to } = req.query;
   if (!elderly_id || !DATE_RE.test(from || '') || !DATE_RE.test(to || '')) {
@@ -41,7 +41,7 @@ router.get('/summary', async (req, res) => {
     p
   );
 
-  // Readings outside each threshold
+  // Out of range counts
   const outside = await db.query(
     `SELECT t.vital_type, t.min_value, t.max_value,
             SUM(CASE t.vital_type

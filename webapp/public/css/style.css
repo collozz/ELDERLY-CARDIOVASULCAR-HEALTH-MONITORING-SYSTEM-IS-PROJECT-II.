@@ -1,5 +1,4 @@
-/* Elderly Heart Rate Monitoring & Emergency Alert System
-   Same layout as the wireframes (top bar, left menu, cards), with a full colour design. */
+/* Main stylesheet */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
@@ -11,7 +10,7 @@
   --text: #16213e;
   --muted: #64708a;
   --border: #e6eaf2;
-  --accent: #e11d48;        /* heart red: brand and main buttons */
+  --accent: #e11d48;
   --accent-2: #be123c;
   --accent-soft: #ffe4ea;
   --indigo: #4f46e5;
@@ -22,7 +21,7 @@
   --critical: #c81e3a;
   --critical-bg: #ffe1e6;
   --info-bg: #e0e7ff;
-  /* one colour per vital sign */
+  /* Vital sign colours */
   --hr: #e11d48;   --hr-soft: #ffe4ea;
   --temp: #f97316; --temp-soft: #ffedd5;
   --spo2: #0ea5e9; --spo2-soft: #e0f2fe;
@@ -70,14 +69,14 @@ h3 { font-size: 1rem; }
 .num { font-variant-numeric: tabular-nums; }
 [hidden] { display: none !important; }
 
-/* Icon helper: any element with --icon set draws that icon in currentColor */
+/* Icons */
 .ico, .sidenav a::before, .vital .label::before, .stat-tile::after, .big-vital::before, .banner::before {
   -webkit-mask: var(--icon) center / contain no-repeat;
   mask: var(--icon) center / contain no-repeat;
   background: currentColor;
 }
 
-/* ---------- Top bar ---------- */
+/* Top bar */
 .topbar {
   background: linear-gradient(100deg, var(--navy) 0%, #1f2f6b 60%, #3b2a7a 100%);
   color: #fff;
@@ -114,7 +113,7 @@ h3 { font-size: 1rem; }
 @keyframes ping { 70% { box-shadow: 0 0 0 8px rgba(74, 222, 128, 0); } 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); } }
 @keyframes ping-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); } 70% { box-shadow: 0 0 0 9px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
-/* ---------- Shell: menu + content ---------- */
+/* Shell: menu + content */
 .shell { display: grid; grid-template-columns: 236px 1fr; min-height: calc(100vh - 60px); }
 .sidenav { background: var(--card); border-right: 1px solid var(--border); padding: 20px 14px; display: flex; flex-direction: column; gap: 4px; }
 .sidenav a {
@@ -142,7 +141,7 @@ h3 { font-size: 1rem; }
 .sidenav a.active::before { opacity: 1; }
 .content { padding: 28px; display: grid; gap: 22px; align-content: start; min-width: 0; max-width: 1240px; }
 
-/* ---------- Cards & layout ---------- */
+/* Cards & layout */
 .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; min-width: 0; box-shadow: var(--shadow); }
 .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
@@ -150,7 +149,7 @@ h3 { font-size: 1rem; }
 .page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
 .section-label { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.74rem; color: var(--muted); font-weight: 700; margin-bottom: 10px; }
 
-/* ---------- Alert banner ---------- */
+/* Alert banner */
 .banner { border-radius: var(--radius); padding: 14px 18px 14px 56px; display: flex; gap: 6px 12px; align-items: center; flex-wrap: wrap; position: relative; box-shadow: var(--shadow); }
 .banner::before { content: ""; position: absolute; left: 18px; top: 50%; width: 24px; height: 24px; margin-top: -12px; --icon: var(--i-warn); }
 .banner.critical { background: linear-gradient(100deg, #e11d48, #b91c1c); color: #fff; }
@@ -160,7 +159,7 @@ h3 { font-size: 1rem; }
 .banner.normal::before { --icon: var(--i-shield); }
 .banner a { color: inherit; font-weight: 700; margin-left: auto; }
 
-/* ---------- Person rows (caregiver dashboard) ---------- */
+/* Person rows */
 .people { display: grid; gap: 12px; }
 .person {
   display: flex; align-items: center; gap: 16px;
@@ -183,7 +182,7 @@ h3 { font-size: 1rem; }
 .person .vitals { color: #3a4560; font-variant-numeric: tabular-nums; }
 .person .vitals strong { color: var(--hr); font-size: 1.05rem; }
 
-/* ---------- Vital cards (patient page) ---------- */
+/* Vital cards */
 .vital { --c: var(--hr); --c-soft: var(--hr-soft); --icon: var(--i-heart); position: relative; overflow: hidden; }
 #v-temperature_c { --c: var(--temp); --c-soft: var(--temp-soft); --icon: var(--i-thermo); }
 #v-spo2_percent { --c: var(--spo2); --c-soft: var(--spo2-soft); --icon: var(--i-drop); }
@@ -198,7 +197,7 @@ h3 { font-size: 1rem; }
 .vital.alert { border-color: #fca5a5; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15), var(--shadow); }
 .vital.alert .value { color: var(--critical); }
 
-/* ---------- Stat tiles ---------- */
+/* Stat tiles */
 .stat-tile { --c: var(--indigo); --c-soft: var(--info-bg); --icon: var(--i-pulse); position: relative; padding-right: 64px; }
 .stat-tile::after { content: ""; position: absolute; right: 18px; top: 18px; width: 22px; height: 22px; color: var(--c); background: var(--c); }
 .stat-tile::before { content: ""; position: absolute; right: 9px; top: 9px; width: 40px; height: 40px; border-radius: 12px; background: var(--c-soft); }
@@ -214,7 +213,7 @@ h3 { font-size: 1rem; }
 #tiles .stat-tile:nth-child(3) { --icon: var(--i-bell); --c: var(--temp); --c-soft: var(--temp-soft); }
 #tiles .stat-tile:nth-child(4) { --icon: var(--i-siren); --c: var(--time); --c-soft: var(--time-soft); }
 
-/* ---------- Pills ---------- */
+/* Pills */
 .pill { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; background: #eef1f6; color: #4b5570; white-space: nowrap; }
 .pill.normal, .pill.Resolved, .pill.Sent { background: var(--normal-bg); color: var(--normal); }
 .pill.warning, .pill.Warning, .pill.Acknowledged, .pill.Pending { background: var(--warning-bg); color: var(--warning); }
@@ -222,7 +221,7 @@ h3 { font-size: 1rem; }
 .pill.Panic { background: #fce7f3; color: #9d174d; }
 .pill.Threshold { background: var(--info-bg); color: #3730a3; }
 
-/* ---------- Forms ---------- */
+/* Forms */
 form { display: grid; gap: 16px; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 label { display: grid; gap: 6px; font-weight: 600; font-size: 0.88rem; color: #2a3450; }
@@ -258,7 +257,7 @@ legend { font-weight: 700; padding: 0 8px; color: var(--indigo); }
 .msg.error { background: var(--critical-bg); color: var(--critical); }
 .msg.ok { background: var(--normal-bg); color: var(--normal); }
 
-/* ---------- Tables ---------- */
+/* Tables */
 .table-wrap { overflow-x: auto; border-radius: 10px; }
 table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
 th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
@@ -267,13 +266,13 @@ tbody tr { transition: background 0.1s; }
 tbody tr:hover { background: #f8faff; }
 td.num, th.num { text-align: right; }
 
-/* ---------- Tabs ---------- */
+/* Tabs */
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; background: #fff; border: 1px solid var(--border); padding: 6px; border-radius: 12px; width: fit-content; max-width: 100%; box-shadow: var(--shadow); }
 .tabs button { font: inherit; background: none; border: 0; padding: 9px 18px; cursor: pointer; border-radius: 8px; color: var(--muted); font-weight: 700; }
 .tabs button:hover { color: var(--text); background: #f4f6fb; }
 .tabs button.active { color: #fff; background: var(--navy-2); }
 
-/* ---------- Alert list (wireframe 5) ---------- */
+/* Alert list */
 .alert-row { display: flex; gap: 16px; align-items: center; padding: 16px 18px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); flex-wrap: wrap; box-shadow: var(--shadow); }
 .alert-row .circle { width: 44px; height: 44px; border-radius: 12px; flex: none; display: grid; place-items: center; }
 .alert-row .circle::after { content: ""; width: 22px; height: 22px; background: currentColor; -webkit-mask: var(--i-bell) center / contain no-repeat; mask: var(--i-bell) center / contain no-repeat; }
@@ -287,7 +286,7 @@ td.num, th.num { text-align: right; }
 .alert-row .body { flex: 1; min-width: 220px; }
 .alert-row .actions { display: flex; gap: 8px; }
 
-/* ---------- Login / register ---------- */
+/* Login / register */
 .auth-page {
   min-height: 100vh; display: grid; place-items: center; padding: 32px 16px;
   background:
@@ -296,7 +295,7 @@ td.num, th.num { text-align: right; }
     linear-gradient(135deg, var(--navy) 0%, #23306b 55%, #3b2a7a 100%);
   position: relative; overflow: hidden;
 }
-/* faint heartbeat line across the background */
+/* Heartbeat line */
 .auth-page::before {
   content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 120px; margin-top: -60px; opacity: 0.18; pointer-events: none;
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 120' preserveAspectRatio='none'><path d='M0 60h120l12-30 16 70 18-90 14 70 10-20h210' fill='none' stroke='white' stroke-width='3' stroke-linejoin='round'/></svg>") repeat-x center / 400px 120px;
@@ -316,7 +315,7 @@ td.num, th.num { text-align: right; }
 .auth-box summary { cursor: pointer; font-weight: 600; }
 .auth-box details ul { margin: 8px 0 0; padding-left: 18px; }
 
-/* ---------- Elderly "My Health" page (wireframe 4) ---------- */
+/* My Health page */
 .panic-wrap { display: grid; justify-items: center; gap: 14px; padding: 36px 12px 24px; background: radial-gradient(circle at 50% 40%, #fff1f3, #fff 70%); }
 .panic {
   width: 230px; height: 230px; border-radius: 50%;
@@ -342,12 +341,12 @@ td.num, th.num { text-align: right; }
 #b-spo2_percent { --c: var(--spo2); --c-soft: var(--spo2-soft); --icon: var(--i-drop); }
 .big-vital strong { font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--c); margin-left: auto; }
 
-/* ---------- Charts ---------- */
+/* Charts */
 .chart { width: 100%; height: 270px; display: block; }
 .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.84rem; color: var(--muted); font-weight: 600; }
 .legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
 
-/* dl in profile cards */
+/* Profile details */
 dl dt { color: var(--muted); font-weight: 600; font-size: 0.88rem; }
 dl dd { margin: 0; font-weight: 600; }
 

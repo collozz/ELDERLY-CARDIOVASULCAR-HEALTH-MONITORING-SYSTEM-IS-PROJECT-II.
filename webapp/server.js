@@ -1,7 +1,4 @@
-// Elderly Heart Rate Monitoring and Emergency Alert System
-// Web server: Node.js + Express + MySQL
-//
-// Data path: Wokwi ESP32 -> MQTT broker -> this server -> MySQL + live dashboards
+// Main server
 
 const express = require('express');
 const session = require('express-session');
@@ -37,7 +34,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.get('/api/live', requireLogin, live.connect);
 app.get('/api/status', requireLogin, (req, res) => res.json(live.getStatus()));
 
-// Any error in a route ends up here instead of crashing the server
+// Error handler
 app.use((err, req, res, next) => {
   console.error(err);
   const dbDown = ['ECONNREFUSED', 'ER_BAD_DB_ERROR', 'ER_ACCESS_DENIED_ERROR'].includes(err.code);
@@ -46,7 +43,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ---------- Readings from the Wokwi ESP32 (MQTT) ----------
+// MQTT readings from Wokwi
 let lastDeviceReading = 0;
 let lastMqttError = '';
 
@@ -72,7 +69,7 @@ if (!SIMULATE_ONLY) {
   });
 }
 
-// ---------- Built-in simulator (backup when Wokwi is not sending) ----------
+// Backup simulator
 const sim = { heart_rate_bpm: 75, temperature_c: 36.6, spo2_percent: 97, episode: 0 };
 const rand = (lo, hi) => lo + Math.random() * (hi - lo);
 const drift = (v, target, step, pull) => v + rand(-step, step) + (target - v) * pull;
@@ -97,7 +94,7 @@ function simulateReading() {
   };
 }
 
-// Demo helper for administrators: force an abnormal episode in the simulator
+// Start an abnormal episode
 app.post('/api/simulate-episode', require('./lib/auth').requireRole('Administrator'), (req, res) => {
   sim.episode = 8;
   res.json({ ok: true });
@@ -114,7 +111,7 @@ setInterval(async () => {
   }
 }, config.READ_INTERVAL_MS);
 
-// ---------- Start ----------
+// Start server
 db.query('SELECT 1')
   .then(() => console.log(`Connected to MySQL database "${config.DB.database}"`))
   .catch((err) =>

@@ -1,5 +1,4 @@
--- Useful queries to show the examiner that the database works.
--- In phpMyAdmin, select your database first, then paste one query into the SQL tab.
+-- Demo queries
 
 -- 1. List every table
 SHOW TABLES;
@@ -17,7 +16,7 @@ JOIN tbl_user u            ON u.user_id = e.user_id
 ORDER BY h.recorded_at DESC
 LIMIT 10;
 
--- 4. Readings outside the person's own heart-rate threshold
+-- 4. Heart rate readings out of range
 SELECT u.full_name, h.heart_rate_bpm, t.min_value, t.max_value, h.recorded_at
 FROM tbl_health_reading h
 JOIN tbl_device d          ON d.device_id = h.device_id

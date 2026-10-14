@@ -1,4 +1,4 @@
-// Dashboard: receives live readings from the server and updates the page.
+// Dashboard page
 
 const VITALS = ['heart_rate_bpm', 'temperature_c', 'spo2_percent'];
 const STATUS_TEXT = { normal: 'Normal', alert: 'Alert' };
@@ -98,7 +98,7 @@ function renderAlerts() {
   }
 }
 
-// Small line chart of recent values with the normal range shaded
+// Chart
 function drawChart(canvas, key) {
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth;

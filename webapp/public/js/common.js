@@ -1,4 +1,4 @@
-// Shared helpers used by every page: API calls, the top bar and menu, live updates.
+// Shared helpers
 
 const VITALS = {
   heart_rate_bpm: { label: 'Heart rate', short: 'HR', unit: 'BPM' },
@@ -13,7 +13,7 @@ const ROLE = {
   PROVIDER: 'Healthcare Provider',
 };
 
-// Menu items for each role: [page file, label]
+// Menus per role
 const MENUS = {
   [ROLE.ADMIN]: [['dashboard.html', 'Dashboard'], ['patients.html', 'Elderly'], ['alerts.html', 'Alerts'], ['reports.html', 'Reports'], ['admin.html', 'Administration'], ['settings.html', 'Settings']],
   [ROLE.CAREGIVER]: [['dashboard.html', 'Dashboard'], ['patients.html', 'My Elderly'], ['alerts.html', 'Alerts'], ['reports.html', 'Reports'], ['settings.html', 'Settings']],
@@ -23,7 +23,7 @@ const MENUS = {
 
 const homePage = (user) => (user.role_name === ROLE.ELDERLY ? 'my-health.html' : 'dashboard.html');
 
-// ---------- API ----------
+// API
 async function api(path, options = {}) {
   const res = await fetch(path, {
     method: options.method || 'GET',
@@ -31,7 +31,7 @@ async function api(path, options = {}) {
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
   let data = {};
-  try { data = await res.json(); } catch (e) { /* empty body */ }
+  try { data = await res.json(); } catch (e) {}
   if (res.status === 401 && !path.startsWith('/api/auth/login')) {
     location.href = 'login.html';
     throw new Error('Please log in.');
@@ -40,12 +40,12 @@ async function api(path, options = {}) {
   return data;
 }
 
-// Turns a <form> into a plain object
+// Form values
 function formData(form) {
   return Object.fromEntries(new FormData(form).entries());
 }
 
-// ---------- Formatting ----------
+// Formatting
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
@@ -53,7 +53,7 @@ function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// MySQL gives 'YYYY-MM-DD HH:MM:SS' (local time)
+// Dates
 function parseDate(s) {
   return s ? new Date(String(s).replace(' ', 'T')) : null;
 }
@@ -77,7 +77,7 @@ function timeAgo(s) {
 function initials(name) {
   return String(name || '?').replace(/^Dr\.?\s+/i, '').split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 }
-// 'Critical' | 'Warning' | null  ->  css class
+// Status labels
 function sevClass(severity) {
   return severity ? severity.toLowerCase() : 'normal';
 }
@@ -99,9 +99,7 @@ function showMsg(el, text, ok = false) {
   el.textContent = text || '';
 }
 
-// ---------- Page shell ----------
-// Checks the login, then draws the top bar and the menu.
-// allowed: list of roles that may open this page (empty = everyone logged in)
+// Page setup
 async function startPage(active, allowed = []) {
   let user;
   try {
@@ -131,7 +129,7 @@ async function startPage(active, allowed = []) {
   return user;
 }
 
-// Live updates. handlers: { reading(data), alert(data) }
+// Live updates
 function connectLive(handlers = {}) {
   const es = new EventSource('/api/live');
   es.addEventListener('status', (e) => {

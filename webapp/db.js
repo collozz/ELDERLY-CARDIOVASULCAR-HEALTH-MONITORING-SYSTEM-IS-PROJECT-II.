@@ -1,4 +1,4 @@
-// MySQL connection pool, shared by the whole server.
+// Database connection
 
 const mysql = require('mysql2/promise');
 const config = require('./config');
@@ -7,11 +7,11 @@ const pool = mysql.createPool({
   ...config.DB,
   waitForConnections: true,
   connectionLimit: 10,
-  dateStrings: true, // DATETIME columns come back as 'YYYY-MM-DD HH:MM:SS' text
-  decimalNumbers: true, // DECIMAL columns come back as numbers
+  dateStrings: true,
+  decimalNumbers: true,
 });
 
-// Run a query and return the rows
+// Run a query
 async function query(sql, params = []) {
   const [rows] = await pool.execute(sql, params);
   return rows;

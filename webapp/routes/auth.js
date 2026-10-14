@@ -1,4 +1,4 @@
-// Login, logout, registration and password change
+// Auth routes
 
 const express = require('express');
 const bcrypt = require('bcryptjs');
@@ -35,7 +35,7 @@ router.post('/logout', (req, res) => {
 
 router.get('/me', requireLogin, (req, res) => res.json({ user: req.session.user }));
 
-// Self-registration. Administrators are only created by another administrator.
+// Register
 router.post('/register', async (req, res) => {
   if (req.body.role_name === ROLES.ADMIN) return res.status(400).json({ error: 'Choose a role.' });
   const result = await createUser(req.body);

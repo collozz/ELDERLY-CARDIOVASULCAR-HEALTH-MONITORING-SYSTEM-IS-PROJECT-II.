@@ -1,5 +1,4 @@
-// Live updates to open dashboards using Server-Sent Events.
-// Each browser only receives events about elderly people it is allowed to see.
+// Live updates
 
 const { visibleElderlyIds } = require('./auth');
 
@@ -15,7 +14,7 @@ async function connect(req, res) {
   req.on('close', () => clients.delete(client));
 }
 
-// Send an event about one elderly person to everyone allowed to see them
+// Send an update
 function send(event, data, elderlyId) {
   const msg = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
   for (const c of clients) {

@@ -1,4 +1,4 @@
-// Administration page: users, devices, care assignments, activity log
+// Admin page
 
 let me;
 let options = { elderly: [], caregivers: [], providers: [] };
@@ -100,7 +100,7 @@ function showTab(name) {
     }
   });
 
-  // Delete needs a second click to confirm
+  // Delete user
   $('#users').addEventListener('click', async (e) => {
     const b = e.target.closest('[data-delete-user]');
     if (!b) return;
