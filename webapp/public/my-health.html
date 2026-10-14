@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Health · Elderly Heart Monitor</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topbar" id="topbar"></header>
+  <div class="shell">
+    <nav class="sidenav" id="nav"></nav>
+    <main class="content" style="max-width:820px">
+      <div>
+        <h1 id="hello">My Health</h1>
+        <p class="muted" style="margin:4px 0 0">Your readings update every few seconds.</p>
+      </div>
+
+      <section class="people">
+        <div class="card big-vital" id="b-heart_rate_bpm"><span>Heart rate</span><strong>–</strong><span class="pill">–</span></div>
+        <div class="card big-vital" id="b-temperature_c"><span>Temperature</span><strong>–</strong><span class="pill">–</span></div>
+        <div class="card big-vital" id="b-spo2_percent"><span>Blood oxygen</span><strong>–</strong><span class="pill">–</span></div>
+      </section>
+
+      <section class="card panic-wrap">
+        <button class="panic" id="panic" type="button" aria-describedby="panic-help"><span class="fill" id="panic-fill"></span><span id="panic-text">PANIC<br />BUTTON</span></button>
+        <p class="section-label" id="panic-help" style="margin:0">Press and hold for 2 seconds to send an emergency alert</p>
+        <p class="msg" id="panic-msg" hidden></p>
+      </section>
+
+      <section class="card">
+        <h2 style="margin-bottom:8px">Who gets my alerts</h2>
+        <div id="team" class="muted">Loading…</div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script>
+    const UNITS = { heart_rate_bpm: 'bpm', temperature_c: '°C', spo2_percent: '%' };
+
+    function show(r, check) {
+      if (!r) return;
+      const statuses = (check && check.statuses) || {};
+      for (const vital of Object.keys(VITALS)) {
+        const box = $(`#b-${vital}`);
+        $('strong', box).textContent = `${r[vital] ?? '–'} ${UNITS[vital]}`;
+        const s = statuses[vital] || 'normal';
+        $('.pill', box).className = `pill ${s}`;
+        $('.pill', box).textContent = s === 'alert' ? 'Not normal' : 'Normal';
+      }
+    }
+
+    // Press-and-hold so the alert is not sent by accident
+    function wirePanic() {
+      const btn = $('#panic');
+      const fill = $('#panic-fill');
+      const HOLD_MS = 2000;
+      let timer = null;
+      let start = 0;
+      let raf = null;
+
+      const step = () => {
+        const pct = Math.min(100, ((Date.now() - start) / HOLD_MS) * 100);
+        fill.style.height = `${pct}%`;
+        if (pct < 100) raf = requestAnimationFrame(step);
+      };
+      const begin = (e) => {
+        e.preventDefault();
+        if (btn.classList.contains('sent')) return;
+        start = Date.now();
+        raf = requestAnimationFrame(step);
+        timer = setTimeout(send, HOLD_MS);
+      };
+      const cancel = () => {
+        clearTimeout(timer);
+        cancelAnimationFrame(raf);
+        if (!btn.classList.contains('sent')) fill.style.height = '0';
+      };
+      async function send() {
+        cancelAnimationFrame(raf);
+        try {
+          await api('/api/patients/panic', { method: 'POST' });
+          btn.classList.add('sent');
+          fill.style.height = '0';
+          $('#panic-text').innerHTML = 'ALERT<br />SENT';
+          showMsg($('#panic-msg'), 'Help is on the way. Your caregivers have been sent an SMS.', true);
+          setTimeout(() => {
+            btn.classList.remove('sent');
+            $('#panic-text').innerHTML = 'PANIC<br />BUTTON';
+          }, 15000);
+        } catch (err) {
+          fill.style.height = '0';
+          showMsg($('#panic-msg'), err.message);
+        }
+      }
+      btn.addEventListener('pointerdown', begin);
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => btn.addEventListener(ev, cancel));
+      // Keyboard: hold Space or Enter
+      btn.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) begin(e); });
+      btn.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter') cancel(); });
+    }
+
+    (async () => {
+      const user = await startPage('my-health.html', [ROLE.ELDERLY]);
+      if (!user) return;
+      $('#hello').textContent = `Hello, ${user.full_name.split(' ')[0]}`;
+      const id = user.elderly_id;
+      const [info, readings] = await Promise.all([api(`/api/patients/${id}`), api(`/api/patients/${id}/readings?hours=1`)]);
+      if (readings.recent.length) show(readings.recent[readings.recent.length - 1], readings.check);
+      const names = [...info.caregivers.map((c) => `${c.full_name} (${c.relationship || 'caregiver'}, SMS)`), ...info.providers.map((p) => `${p.full_name} (doctor)`)];
+      $('#team').textContent = names.length ? names.join(', ') : 'Nobody is assigned yet. Ask the administrator to add your caregiver.';
+      wirePanic();
+      connectLive({ reading(r) { if (r.elderly_id === id) show(r, r); } });
+    })();
+  </script>
+</body>
+</html>

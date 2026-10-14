@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Elderly · Elderly Heart Monitor</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topbar" id="topbar"></header>
+  <div class="shell">
+    <nav class="sidenav" id="nav"></nav>
+    <main class="content">
+      <div class="page-head">
+        <div>
+          <h1 id="title">My Elderly</h1>
+          <p class="muted" style="margin:4px 0 0">Click a name to see their vital signs, profile and thresholds.</p>
+        </div>
+        <a class="btn primary" href="admin.html#users" id="add-btn" hidden>+ Add elderly person</a>
+      </div>
+
+      <section class="card">
+        <div class="card-head">
+          <input type="search" id="search" placeholder="Search by name…" style="max-width:320px" aria-label="Search by name" />
+          <span class="muted small" id="count"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Age</th><th>Gender</th><th class="num">Heart rate</th><th class="num">Temp</th><th class="num">SpO₂</th><th>Last reading</th><th>Status</th></tr>
+            </thead>
+            <tbody id="rows"><tr><td colspan="8" class="muted">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script>
+    let people = [];
+    function render() {
+      const q = $('#search').value.trim().toLowerCase();
+      const list = people.filter((p) => p.full_name.toLowerCase().includes(q));
+      $('#count').textContent = `${list.length} of ${people.length}`;
+      $('#rows').innerHTML = list.length
+        ? list.map((p) => {
+            const r = p.latest;
+            const sev = p.check ? p.check.severity : null;
+            return `<tr>
+              <td><a href="patient.html?id=${p.elderly_id}"><strong>${esc(p.full_name)}</strong></a></td>
+              <td>${p.age}</td><td>${esc(p.gender || '–')}</td>
+              <td class="num">${r ? r.heart_rate_bpm + ' bpm' : '–'}</td>
+              <td class="num">${r && r.temperature_c != null ? r.temperature_c + ' °C' : '–'}</td>
+              <td class="num">${r && r.spo2_percent != null ? r.spo2_percent + ' %' : '–'}</td>
+              <td>${r ? fmtDateTime(r.recorded_at) : '–'}</td>
+              <td><span class="pill ${sevClass(sev)}">${sevText(sev)}</span></td>
+            </tr>`;
+          }).join('')
+        : '<tr><td colspan="8" class="muted">Nobody found.</td></tr>';
+    }
+
+    (async () => {
+      const user = await startPage('patients.html', [ROLE.ADMIN, ROLE.CAREGIVER, ROLE.PROVIDER]);
+      if (!user) return;
+      if (user.role_name === ROLE.ADMIN) { $('#title').textContent = 'All elderly'; $('#add-btn').hidden = false; }
+      if (user.role_name === ROLE.PROVIDER) $('#title').textContent = 'My Patients';
+      people = (await api('/api/patients')).people;
+      render();
+      $('#search').addEventListener('input', render);
+      connectLive({
+        reading(r) {
+          const p = people.find((x) => x.elderly_id === r.elderly_id);
+          if (p) { p.latest = r; p.check = { severity: r.severity }; render(); }
+        },
+      });
+    })();
+  </script>
+</body>
+</html>

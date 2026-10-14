@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Elderly Heart Monitor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Elderly Heart Rate Monitoring &amp; Emergency Alert System</h1>
+      <p class="subtitle">IoT-enabled cardiovascular monitoring for elderly patients</p>
+    </div>
+    <div class="connection">
+      <span id="conn-dot" class="dot"></span>
+      <span id="conn-text">Connecting…</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="patient card">
+      <div>
+        <div class="muted">Patient</div>
+        <div class="patient-name">Patient P001 (simulated)</div>
+      </div>
+      <div>
+        <div class="muted">Last reading</div>
+        <div id="last-update">–</div>
+      </div>
+      <div>
+        <div class="muted">Data source</div>
+        <div id="source">–</div>
+      </div>
+    </section>
+
+    <section id="banner" class="banner normal">
+      <strong id="banner-title">Waiting for readings…</strong>
+      <span id="banner-detail"></span>
+    </section>
+
+    <section class="vitals">
+      <article class="card vital" id="vital-heart_rate_bpm">
+        <div class="vital-head"><span class="vital-label">Heart rate</span><span class="pill">–</span></div>
+        <div class="vital-value"><span class="value">–</span> <span class="unit">BPM</span></div>
+        <div class="range muted"></div>
+        <canvas height="60"></canvas>
+      </article>
+      <article class="card vital" id="vital-temperature_c">
+        <div class="vital-head"><span class="vital-label">Body temperature</span><span class="pill">–</span></div>
+        <div class="vital-value"><span class="value">–</span> <span class="unit">°C</span></div>
+        <div class="range muted"></div>
+        <canvas height="60"></canvas>
+      </article>
+      <article class="card vital" id="vital-spo2_percent">
+        <div class="vital-head"><span class="vital-label">Blood oxygen (SpO₂)</span><span class="pill">–</span></div>
+        <div class="vital-value"><span class="value">–</span> <span class="unit">%</span></div>
+        <div class="range muted"></div>
+        <canvas height="60"></canvas>
+      </article>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Emergency alerts</h2>
+        <button id="episode-btn" title="Only affects the built-in simulator">Simulate abnormal episode</button>
+      </div>
+      <ul id="alerts" class="alerts"><li class="muted">No alerts yet.</li></ul>
+    </section>
+  </main>
+
+  <footer class="muted">Prototype (30% milestone): readings are simulated by an ESP32 in the Wokwi online emulator.</footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

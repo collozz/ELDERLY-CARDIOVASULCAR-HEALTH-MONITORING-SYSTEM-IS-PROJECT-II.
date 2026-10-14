@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Register · Elderly Heart Monitor</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="auth-page">
+    <div class="auth-box wide">
+      <div class="logo">
+        <span class="heart" aria-hidden="true">♥</span>
+        <span class="title">Create an account</span>
+        <span class="muted small">Elderly Heart Rate Monitoring &amp; Emergency Alert System</span>
+      </div>
+
+      <form id="register-form"></form>
+
+      <p class="muted small" style="text-align:center;margin:0">
+        Already registered? <a href="login.html">Log in</a>
+      </p>
+    </div>
+  </main>
+
+  <script src="js/common.js"></script>
+  <script src="js/user-form.js"></script>
+  <script>
+    const form = $('#register-form');
+    form.innerHTML = userFormHtml() + `
+      <p class="msg error" id="msg" hidden></p>
+      <button class="btn primary" type="submit">Create account</button>`;
+    wireUserForm(form);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      showMsg($('#msg'), '');
+      try {
+        const { user } = await api('/api/auth/register', { method: 'POST', body: formData(form) });
+        location.href = homePage(user);
+      } catch (err) {
+        showMsg($('#msg'), err.message);
+      }
+    });
+  </script>
+</body>
+</html>

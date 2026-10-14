@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard · Elderly Heart Monitor</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topbar" id="topbar"></header>
+  <div class="shell">
+    <nav class="sidenav" id="nav"></nav>
+    <main class="content">
+      <div class="page-head">
+        <div>
+          <h1 id="greeting">Dashboard</h1>
+          <p class="muted" id="today" style="margin:4px 0 0"></p>
+        </div>
+        <button class="btn light small" id="episode-btn" type="button" hidden title="Makes the built-in simulator produce abnormal readings">Simulate abnormal episode</button>
+      </div>
+
+      <div id="banner"></div>
+
+      <section class="grid-4" id="overview" hidden></section>
+
+      <section>
+        <div class="section-label" id="people-label">Assigned elderly · live status</div>
+        <div class="people" id="people"><p class="muted">Loading…</p></div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Weekly heart rate trend</h2>
+          <div class="legend" id="trend-legend"></div>
+        </div>
+        <canvas class="chart" id="trend"></canvas>
+        <p class="muted small" style="margin:8px 0 0">Daily average heart rate (BPM) over the last 7 days. The green band is the normal range 50–100 BPM.</p>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script src="js/chart.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

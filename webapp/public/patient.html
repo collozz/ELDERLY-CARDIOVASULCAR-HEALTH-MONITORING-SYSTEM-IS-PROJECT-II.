@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Elderly profile · Elderly Heart Monitor</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topbar" id="topbar"></header>
+  <div class="shell">
+    <nav class="sidenav" id="nav"></nav>
+    <main class="content">
+      <div class="page-head">
+        <div>
+          <a href="dashboard.html" class="small">← Back to Dashboard</a>
+          <h1 id="name" style="margin-top:6px">Loading…</h1>
+          <p class="muted" id="sub" style="margin:4px 0 0"></p>
+        </div>
+        <span class="pill" id="overall">–</span>
+      </div>
+
+      <section class="grid-4">
+        <article class="card vital" id="v-heart_rate_bpm"><div class="label">Heart rate <span class="pill">–</span></div><div class="value">– <span class="unit">bpm</span></div><div class="muted small range"></div></article>
+        <article class="card vital" id="v-temperature_c"><div class="label">Temperature <span class="pill">–</span></div><div class="value">– <span class="unit">°C</span></div><div class="muted small range"></div></article>
+        <article class="card vital" id="v-spo2_percent"><div class="label">SpO₂ <span class="pill">–</span></div><div class="value">– <span class="unit">%</span></div><div class="muted small range"></div></article>
+        <article class="card vital" id="v-updated"><div class="label">Last reading</div><div class="value" style="font-size:1.6rem" id="updated">–</div><div class="muted small" id="device-line"></div></article>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Heart rate trend</h2>
+          <div class="form-actions" role="group" aria-label="Time range">
+            <button class="btn light small" data-hours="1" type="button">1 hour</button>
+            <button class="btn small" data-hours="24" type="button">24 hours</button>
+            <button class="btn light small" data-hours="168" type="button">7 days</button>
+          </div>
+        </div>
+        <canvas class="chart" id="hr-chart"></canvas>
+        <p class="muted small" style="margin:8px 0 0" id="chart-note"></p>
+      </section>
+
+      <section class="grid-2">
+        <article class="card">
+          <div class="card-head"><h2>Profile</h2><button class="btn light small" id="edit-btn" type="button">Edit</button></div>
+          <dl id="profile-view" style="display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:0"></dl>
+          <form id="profile-form" hidden>
+            <div class="form-grid">
+              <label>Full name <input name="full_name" id="pf_full_name" required /></label>
+              <label>Phone number <input name="phone_number" id="pf_phone_number" /></label>
+              <label>Date of birth <input type="date" name="date_of_birth" id="pf_date_of_birth" required /></label>
+              <label>Gender <select name="gender" id="pf_gender"><option value="">–</option><option>Female</option><option>Male</option><option>Other</option></select></label>
+              <label>Address <input name="address" id="pf_address" /></label>
+              <label>Emergency contact name <input name="emergency_contact_name" id="pf_emergency_contact_name" required /></label>
+              <label>Emergency contact phone <input name="emergency_contact_phone" id="pf_emergency_contact_phone" required /></label>
+            </div>
+            <label>Medical history <textarea name="medical_history" id="pf_medical_history"></textarea></label>
+            <p class="msg" id="profile-msg" hidden></p>
+            <div class="form-actions"><button class="btn primary" type="submit">Save profile</button><button class="btn light" type="button" id="cancel-btn">Cancel</button></div>
+          </form>
+        </article>
+
+        <article class="card">
+          <div class="card-head"><h2>Alert thresholds</h2></div>
+          <form id="threshold-form">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Vital sign</th><th>Minimum</th><th>Maximum</th></tr></thead>
+                <tbody id="threshold-rows"></tbody>
+              </table>
+            </div>
+            <p class="muted small" id="threshold-note" style="margin:0"></p>
+            <p class="msg" id="threshold-msg" hidden></p>
+            <div class="form-actions" id="threshold-actions" hidden><button class="btn primary" type="submit">Save thresholds</button></div>
+          </form>
+        </article>
+      </section>
+
+      <section class="grid-2">
+        <article class="card">
+          <h2 style="margin-bottom:10px">Care team</h2>
+          <div id="team"></div>
+        </article>
+        <article class="card">
+          <div class="card-head"><h2>Recent alerts</h2><a href="alerts.html" class="small">All alerts →</a></div>
+          <div id="recent-alerts" class="people"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script src="js/chart.js"></script>
+  <script src="js/patient.js"></script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Alerts · Elderly Heart Monitor</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topbar" id="topbar"></header>
+  <div class="shell">
+    <nav class="sidenav" id="nav"></nav>
+    <main class="content">
+      <div class="page-head">
+        <h1>Alerts &amp; Notifications</h1>
+        <div class="form-actions">
+          <label style="display:flex;align-items:center;gap:8px">Status
+            <select id="f-status"><option value="">All</option><option>Open</option><option>Acknowledged</option><option>Resolved</option></select>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px">Type
+            <select id="f-type"><option value="">All</option><option value="Threshold">Abnormal reading</option><option value="Panic">Panic button</option></select>
+          </label>
+        </div>
+      </div>
+
+      <section class="people" id="list"><p class="muted">Loading…</p></section>
+      <p class="section-label">Notification delivery: Web ✓ · SMS ✓ sent / Pending / Failed</p>
+    </main>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script>
+    let user;
+
+    function delivery(list) {
+      if (!list.length) return 'No one notified';
+      const by = {};
+      for (const n of list) (by[n.channel] = by[n.channel] || []).push(n);
+      return Object.entries(by)
+        .map(([channel, ns]) => {
+          const sent = ns.filter((n) => n.status === 'Sent').length;
+          const label = channel === 'Dashboard' ? 'Web' : channel;
+          return `${label} ${sent === ns.length ? '✓' : `${sent}/${ns.length}`} <span class="muted">(${ns.map((n) => esc(n.recipient)).join(', ')})</span>`;
+        })
+        .join(' · ');
+    }
+
+    async function load() {
+      const params = new URLSearchParams();
+      if ($('#f-status').value) params.set('status', $('#f-status').value);
+      if ($('#f-type').value) params.set('type', $('#f-type').value);
+      const { alerts } = await api('/api/alerts?' + params);
+      const canAct = user.role_name !== ROLE.ELDERLY;
+      $('#list').innerHTML = alerts.length
+        ? alerts.map((a) => `
+          <article class="alert-row">
+            <span class="circle ${a.status}" aria-hidden="true"></span>
+            <div class="body">
+              <strong>${esc(a.full_name)}</strong> — ${esc(a.alert_type === 'Panic' ? 'Manual panic button triggered' : a.message)}
+              <div class="small" style="margin-top:4px">
+                <span class="pill ${a.alert_type}">${a.alert_type === 'Panic' ? 'Panic' : 'Abnormal reading'}</span>
+                <span class="pill ${a.severity}">${a.severity}</span>
+                <span class="muted">${fmtDateTime(a.triggered_at)} (${timeAgo(a.triggered_at)})</span>
+              </div>
+              <div class="small" style="margin-top:4px">${delivery(a.notifications)}</div>
+            </div>
+            <span class="pill ${a.status}">${a.status}</span>
+            ${canAct && a.status !== 'Resolved' ? `<div class="actions">
+              ${a.status === 'Open' ? `<button class="btn light small" data-id="${a.alert_id}" data-status="Acknowledged" type="button">Acknowledge</button>` : ''}
+              <button class="btn small" data-id="${a.alert_id}" data-status="Resolved" type="button">Resolve</button>
+            </div>` : ''}
+          </article>`).join('')
+        : '<p class="card muted">No alerts match this filter.</p>';
+    }
+
+    (async () => {
+      user = await startPage('alerts.html', []);
+      if (!user) return;
+      const qs = new URLSearchParams(location.search);
+      if (qs.get('status')) $('#f-status').value = qs.get('status');
+      await load();
+      $('#f-status').addEventListener('change', load);
+      $('#f-type').addEventListener('change', load);
+      $('#list').addEventListener('click', async (e) => {
+        const b = e.target.closest('button[data-id]');
+        if (!b) return;
+        b.disabled = true;
+        try {
+          await api(`/api/alerts/${b.dataset.id}/status`, { method: 'POST', body: { status: b.dataset.status } });
+          toast(`Alert ${b.dataset.status.toLowerCase()}.`);
+        } catch (err) {
+          toast(err.message);
+        }
+        load();
+      });
+      connectLive({ alert: load });
+    })();
+  </script>
+</body>
+</html>

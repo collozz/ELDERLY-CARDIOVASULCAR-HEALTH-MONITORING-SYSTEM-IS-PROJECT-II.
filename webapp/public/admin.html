@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Administration · Elderly Heart Monitor</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topbar" id="topbar"></header>
+  <div class="shell">
+    <nav class="sidenav" id="nav"></nav>
+    <main class="content">
+      <h1>Administration</h1>
+
+      <div class="tabs" role="tablist">
+        <button type="button" data-tab="users" class="active">Users</button>
+        <button type="button" data-tab="devices">Devices</button>
+        <button type="button" data-tab="assignments">Care assignments</button>
+        <button type="button" data-tab="activity">Activity log</button>
+      </div>
+
+      <!-- Users -->
+      <section data-panel="users" class="grid-2" style="align-items:start">
+        <article class="card">
+          <h2 style="margin-bottom:10px">All users</h2>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Name</th><th>Role</th><th>Email</th><th></th></tr></thead>
+            <tbody id="users"></tbody>
+          </table></div>
+        </article>
+        <article class="card">
+          <h2 style="margin-bottom:10px">Add a user</h2>
+          <form id="user-form"></form>
+        </article>
+      </section>
+
+      <!-- Devices -->
+      <section data-panel="devices" class="grid-2" style="align-items:start" hidden>
+        <article class="card">
+          <h2 style="margin-bottom:10px">Devices</h2>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Serial number</th><th>Worn by</th><th>Status</th><th>Last reading</th><th></th></tr></thead>
+            <tbody id="devices"></tbody>
+          </table></div>
+        </article>
+        <article class="card">
+          <h2 style="margin-bottom:10px">Register a device</h2>
+          <form id="device-form">
+            <label>Worn by <select name="elderly_id" id="dev_elderly" required></select></label>
+            <label>Device type <input name="device_type" id="dev_type" value="ESP32 (Wokwi simulated)" required /></label>
+            <label>Serial number <input name="serial_number" id="dev_serial" placeholder="e.g. WOKWI-ESP32-003" required /></label>
+            <p class="msg" id="device-msg" hidden></p>
+            <button class="btn primary" type="submit">Register device</button>
+          </form>
+        </article>
+      </section>
+
+      <!-- Assignments -->
+      <section data-panel="assignments" class="grid-2" style="align-items:start" hidden>
+        <article class="card">
+          <h2 style="margin-bottom:10px">Who looks after whom</h2>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Elderly person</th><th>Cared for by</th><th>Role</th><th></th></tr></thead>
+            <tbody id="assignments"></tbody>
+          </table></div>
+        </article>
+        <article class="card">
+          <h2 style="margin-bottom:10px">Assign a caregiver or provider</h2>
+          <form id="assign-form">
+            <label>Type
+              <select name="type" id="as_type"><option value="caregiver">Caregiver</option><option value="provider">Healthcare provider</option></select>
+            </label>
+            <label>Person <select name="person_id" id="as_person" required></select></label>
+            <label>Elderly person <select name="elderly_id" id="as_elderly" required></select></label>
+            <p class="msg" id="assign-msg" hidden></p>
+            <button class="btn primary" type="submit">Assign</button>
+          </form>
+        </article>
+      </section>
+
+      <!-- Activity -->
+      <section data-panel="activity" class="card" hidden>
+        <h2 style="margin-bottom:10px">Activity log</h2>
+        <div class="table-wrap"><table>
+          <thead><tr><th>When</th><th>Who</th><th>Action</th><th>Details</th></tr></thead>
+          <tbody id="activity"></tbody>
+        </table></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script src="js/user-form.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

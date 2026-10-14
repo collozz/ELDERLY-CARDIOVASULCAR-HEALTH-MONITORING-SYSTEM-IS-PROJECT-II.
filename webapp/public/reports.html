@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reports · Elderly Heart Monitor</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="topbar" id="topbar"></header>
+  <div class="shell">
+    <nav class="sidenav" id="nav"></nav>
+    <main class="content">
+      <h1>Health reports</h1>
+
+      <form class="card" id="report-form">
+        <div class="form-grid">
+          <label>Elderly person <select name="elderly_id" id="elderly_id" required></select></label>
+          <label>From <input type="date" name="from" id="from" required /></label>
+          <label>To <input type="date" name="to" id="to" required /></label>
+        </div>
+        <p class="msg" id="msg" hidden></p>
+        <div class="form-actions">
+          <button class="btn primary" type="submit">Generate report</button>
+          <a class="btn light" id="csv" href="#">Download readings (CSV)</a>
+        </div>
+      </form>
+
+      <div id="report" hidden>
+        <section class="grid-4" id="tiles"></section>
+
+        <section class="card" style="margin-top:20px">
+          <div class="card-head"><h2>Daily heart rate</h2><div class="legend" id="legend"></div></div>
+          <canvas class="chart" id="daily-chart"></canvas>
+        </section>
+
+        <section class="grid-2" style="margin-top:20px">
+          <article class="card">
+            <h2 style="margin-bottom:10px">Vital signs summary</h2>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Vital sign</th><th class="num">Average</th><th class="num">Lowest</th><th class="num">Highest</th><th class="num">Outside range</th></tr></thead>
+              <tbody id="vitals-table"></tbody>
+            </table></div>
+          </article>
+          <article class="card">
+            <h2 style="margin-bottom:10px">Alerts in this period</h2>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Type</th><th>Severity</th><th>Status</th><th class="num">Count</th></tr></thead>
+              <tbody id="alerts-table"></tbody>
+            </table></div>
+          </article>
+        </section>
+
+        <section class="card" style="margin-top:20px">
+          <h2 style="margin-bottom:10px">Day by day</h2>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Date</th><th class="num">Readings</th><th class="num">Avg HR</th><th class="num">Min HR</th><th class="num">Max HR</th><th class="num">Avg temp</th><th class="num">Avg SpO₂</th></tr></thead>
+            <tbody id="daily-table"></tbody>
+          </table></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script src="js/chart.js"></script>
+  <script>
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    function query() {
+      return new URLSearchParams({ elderly_id: $('#elderly_id').value, from: $('#from').value, to: $('#to').value });
+    }
+
+    async function generate() {
+      showMsg($('#msg'), '');
+      let r;
+      try {
+        r = await api('/api/reports/summary?' + query());
+      } catch (err) {
+        showMsg($('#msg'), err.message);
+        return;
+      }
+      const s = r.stats;
+      const totalAlerts = r.alerts.reduce((n, a) => n + a.count, 0);
+      const panic = r.alerts.filter((a) => a.alert_type === 'Panic').reduce((n, a) => n + a.count, 0);
+      $('#tiles').innerHTML = [
+        ['Readings', s.readings],
+        ['Average heart rate', s.hr_avg != null ? `${s.hr_avg} bpm` : '–'],
+        ['Alerts', totalAlerts],
+        ['Panic button presses', panic],
+      ].map(([l, v]) => `<div class="card stat-tile"><div class="section-label">${l}</div><div class="value">${v}</div></div>`).join('');
+
+      const out = Object.fromEntries(r.outside.map((o) => [o.vital_type, o]));
+      const row = (vital, avg, min, max) => {
+        const o = out[vital];
+        return `<tr><td>${VITALS[vital].label} <span class="muted small">(${VITALS[vital].unit})</span></td>
+          <td class="num">${avg ?? '–'}</td><td class="num">${min ?? '–'}</td><td class="num">${max ?? '–'}</td>
+          <td class="num">${o ? `${o.count_outside} <span class="muted small">(range ${o.min_value}–${o.max_value})</span>` : '–'}</td></tr>`;
+      };
+      $('#vitals-table').innerHTML =
+        row('heart_rate_bpm', s.hr_avg, s.hr_min, s.hr_max) +
+        row('temperature_c', s.temp_avg, s.temp_min, s.temp_max) +
+        row('spo2_percent', s.spo2_avg, s.spo2_min, s.spo2_max);
+
+      $('#alerts-table').innerHTML = r.alerts.length
+        ? r.alerts.map((a) => `<tr><td><span class="pill ${a.alert_type}">${a.alert_type}</span></td><td><span class="pill ${a.severity}">${a.severity}</span></td><td><span class="pill ${a.status}">${a.status}</span></td><td class="num">${a.count}</td></tr>`).join('')
+        : '<tr><td colspan="4" class="muted">No alerts in this period.</td></tr>';
+
+      $('#daily-table').innerHTML = r.daily.length
+        ? r.daily.map((d) => `<tr><td>${d.day}</td><td class="num">${d.readings}</td><td class="num">${d.hr_avg}</td><td class="num">${d.hr_min}</td><td class="num">${d.hr_max}</td><td class="num">${d.temp_avg ?? '–'}</td><td class="num">${d.spo2_avg ?? '–'}</td></tr>`).join('')
+        : '<tr><td colspan="7" class="muted">No readings in this period.</td></tr>';
+
+      $('#report').hidden = false;
+      const day = (d) => parseDate(`${d.day} 12:00:00`);
+      const series = [
+        { name: 'Average', color: '#b91c1c', points: r.daily.map((d) => ({ x: day(d), y: d.hr_avg })) },
+        { name: 'Lowest', color: '#1d4ed8', points: r.daily.map((d) => ({ x: day(d), y: d.hr_min })) },
+        { name: 'Highest', color: '#c2410c', points: r.daily.map((d) => ({ x: day(d), y: d.hr_max })) },
+      ];
+      $('#legend').innerHTML = legendHtml(series);
+      lineChart($('#daily-chart'), { series, band: out.heart_rate_bpm ? { lo: out.heart_rate_bpm.min_value, hi: out.heart_rate_bpm.max_value } : null, xFormat: 'day', xRange: { from: parseDate(`${$('#from').value} 01:00:00`), to: parseDate(`${$('#to').value} 23:00:00`) } });
+    }
+
+    (async () => {
+      const user = await startPage('reports.html', [ROLE.ADMIN, ROLE.CAREGIVER, ROLE.PROVIDER]);
+      if (!user) return;
+      const { people } = await api('/api/patients');
+      $('#elderly_id').innerHTML = people.map((p) => `<option value="${p.elderly_id}">${esc(p.full_name)}</option>`).join('') || '<option value="">Nobody assigned</option>';
+      const today = new Date();
+      $('#to').value = iso(today);
+      $('#from').value = iso(new Date(today - 6 * 86400000));
+
+      $('#report-form').addEventListener('submit', (e) => { e.preventDefault(); generate(); });
+      $('#csv').addEventListener('click', (e) => {
+        e.preventDefault();
+        location.href = '/api/reports/export.csv?' + query();
+      });
+      if (people.length) generate();
+    })();
+  </script>
+</body>
+</html>
