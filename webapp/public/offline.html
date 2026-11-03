@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Offline · Elderly Heart Monitor</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0f1b3d" />
+  <link rel="icon" type="image/png" href="icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Heart Monitor" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="auth-page">
+    <div class="auth-box">
+      <div class="logo">
+        <span class="heart" aria-hidden="true">♥</span>
+        <span class="title">You are offline</span>
+        <span class="muted">This page needs an internet connection. Live readings and alerts will come back when you reconnect.</span>
+      </div>
+      <p class="msg error" style="text-align:center">In an emergency with no internet, call or SMS your caregiver directly.</p>
+      <button class="btn primary" type="button" onclick="location.reload()">Try again</button>
+    </div>
+  </main>
+</body>
+</html>

@@ -6,6 +6,7 @@ const config = require('../config');
 const { ROLES, requireLogin, requireRole, visibleElderlyIds, canSeeElderly, inList } = require('../lib/auth');
 const { evaluate } = require('../lib/ingest');
 const { createAlert } = require('../lib/alerts');
+const { createUser } = require('../lib/users');
 
 const router = express.Router();
 router.use(requireLogin);
@@ -39,6 +40,28 @@ router.get('/', async (req, res) => {
     p.check = p.latest ? await evaluate(p.elderly_id, p.latest) : null;
   }
   res.json({ people });
+});
+
+// Register an elderly person
+router.post('/', requireRole(ROLES.CAREGIVER, ROLES.PROVIDER, ROLES.ADMIN), async (req, res) => {
+  const result = await createUser({ ...req.body, role_name: ROLES.ELDERLY });
+  if (result.error) return res.status(400).json({ error: result.error });
+  const e = await db.one('SELECT elderly_id FROM tbl_elderly_profile WHERE user_id = ?', [result.userId]);
+  const me = req.session.user;
+  // Link to the person who registered them
+  if (me.role_name === ROLES.CAREGIVER) {
+    await db.query(
+      'INSERT INTO tbl_caregiver_assignment (caregiver_id, elderly_id) SELECT caregiver_id, ? FROM tbl_caregiver WHERE user_id = ?',
+      [e.elderly_id, me.user_id]
+    );
+  } else if (me.role_name === ROLES.PROVIDER) {
+    await db.query(
+      'INSERT INTO tbl_provider_assignment (provider_id, elderly_id) SELECT provider_id, ? FROM tbl_healthcare_provider WHERE user_id = ?',
+      [e.elderly_id, me.user_id]
+    );
+  }
+  await db.log(me.user_id, 'Registered elderly person', req.body.full_name);
+  res.json({ elderly_id: e.elderly_id });
 });
 
 // Weekly trend

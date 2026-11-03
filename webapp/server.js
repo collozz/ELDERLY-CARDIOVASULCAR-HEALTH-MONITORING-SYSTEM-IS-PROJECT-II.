@@ -24,13 +24,22 @@ app.use(
 );
 
 app.get('/', (req, res) => res.redirect('/login.html'));
-app.use(express.static(path.join(__dirname, 'public')));
+// App files
+app.use(
+  express.static(path.join(__dirname, 'public'), {
+    setHeaders(res, file) {
+      if (file.endsWith('sw.js')) res.set('Cache-Control', 'no-cache');
+      if (file.endsWith('.webmanifest')) res.set('Content-Type', 'application/manifest+json');
+    },
+  })
+);
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/patients', require('./routes/patients'));
 app.use('/api/alerts', require('./routes/alerts'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/notify', require('./routes/notify'));
 app.get('/api/live', requireLogin, live.connect);
 app.get('/api/status', requireLogin, (req, res) => res.json(live.getStatus()));
 

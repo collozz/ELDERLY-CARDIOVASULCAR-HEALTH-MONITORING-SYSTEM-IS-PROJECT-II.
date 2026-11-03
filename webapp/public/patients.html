@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Elderly · Elderly Heart Monitor</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0f1b3d" />
+  <link rel="icon" type="image/png" href="icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Heart Monitor" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -16,8 +24,31 @@
           <h1 id="title">My Elderly</h1>
           <p class="muted" style="margin:4px 0 0">Click a name to see their vital signs, profile and thresholds.</p>
         </div>
-        <a class="btn primary" href="admin.html#users" id="add-btn" hidden>+ Add elderly person</a>
+        <button class="btn primary" type="button" id="add-btn">+ Register elderly person</button>
       </div>
+
+      <form class="card" id="add-form" hidden>
+        <div class="card-head"><h2>Register an elderly person</h2><span class="muted small" id="add-note"></span></div>
+        <div class="form-grid">
+          <label>Full name <input name="full_name" required /></label>
+          <label>Email address (for their login) <input type="email" name="email" required /></label>
+          <label>Phone number <input name="phone_number" placeholder="+2547…" /></label>
+          <label>Password for their login <input type="password" name="password" minlength="8" required autocomplete="new-password" /></label>
+          <label>Date of birth <input type="date" name="date_of_birth" required /></label>
+          <label>Gender
+            <select name="gender"><option value="">–</option><option>Female</option><option>Male</option><option>Other</option></select>
+          </label>
+          <label>Address <input name="address" /></label>
+          <label>Emergency contact name <input name="emergency_contact_name" required /></label>
+          <label>Emergency contact phone <input name="emergency_contact_phone" required placeholder="+2547…" /></label>
+        </div>
+        <label>Medical history <textarea name="medical_history" placeholder="e.g. Hypertension, medication"></textarea></label>
+        <p class="msg" id="add-msg" hidden></p>
+        <div class="form-actions">
+          <button class="btn primary" type="submit">Register</button>
+          <button class="btn light" type="button" id="add-cancel">Cancel</button>
+        </div>
+      </form>
 
       <section class="card">
         <div class="card-head">
@@ -63,7 +94,22 @@
     (async () => {
       const user = await startPage('patients.html', [ROLE.ADMIN, ROLE.CAREGIVER, ROLE.PROVIDER]);
       if (!user) return;
-      if (user.role_name === ROLE.ADMIN) { $('#title').textContent = 'All elderly'; $('#add-btn').hidden = false; }
+      if (user.role_name === ROLE.ADMIN) $('#title').textContent = 'All elderly';
+      $('#add-note').textContent = user.role_name === ROLE.ADMIN
+        ? 'Assign a caregiver and doctor under Administration afterwards.'
+        : 'They will be added to your list automatically. Default alert thresholds are set.';
+      const form = $('#add-form');
+      $('#add-btn').addEventListener('click', () => { form.hidden = false; form.scrollIntoView({ behavior: 'smooth' }); });
+      $('#add-cancel').addEventListener('click', () => { form.hidden = true; form.reset(); showMsg($('#add-msg'), ''); });
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+          const { elderly_id } = await api('/api/patients', { method: 'POST', body: formData(form) });
+          location.href = `patient.html?id=${elderly_id}`;
+        } catch (err) {
+          showMsg($('#add-msg'), err.message);
+        }
+      });
       if (user.role_name === ROLE.PROVIDER) $('#title').textContent = 'My Patients';
       people = (await api('/api/patients')).people;
       render();

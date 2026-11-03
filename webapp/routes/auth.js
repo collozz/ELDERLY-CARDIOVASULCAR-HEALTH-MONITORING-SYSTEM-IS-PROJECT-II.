@@ -34,6 +34,7 @@ router.post('/logout', (req, res) => {
 });
 
 router.get('/me', requireLogin, (req, res) => res.json({ user: req.session.user }));
+router.get('/session', (req, res) => res.json({ user: req.session.user || null }));
 
 // Register
 router.post('/register', async (req, res) => {

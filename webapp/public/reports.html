@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Reports · Elderly Heart Monitor</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0f1b3d" />
+  <link rel="icon" type="image/png" href="icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Heart Monitor" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -11,11 +19,14 @@
   <div class="shell">
     <nav class="sidenav" id="nav"></nav>
     <main class="content">
-      <h1>Health reports</h1>
+      <div class="page-head">
+        <h1>Health reports</h1>
+        <button class="btn light small no-print" id="print-btn" type="button" hidden>Print / save as PDF</button>
+      </div>
 
       <form class="card" id="report-form">
         <div class="form-grid">
-          <label>Elderly person <select name="elderly_id" id="elderly_id" required></select></label>
+          <label id="person-field">Elderly person <select name="elderly_id" id="elderly_id" required></select></label>
           <label>From <input type="date" name="from" id="from" required /></label>
           <label>To <input type="date" name="to" id="to" required /></label>
         </div>
@@ -27,6 +38,7 @@
       </form>
 
       <div id="report" hidden>
+        <p class="print-only" id="print-title"></p>
         <section class="grid-4" id="tiles"></section>
 
         <section class="card" style="margin-top:20px">
@@ -47,6 +59,23 @@
             <div class="table-wrap"><table>
               <thead><tr><th>Type</th><th>Severity</th><th>Status</th><th class="num">Count</th></tr></thead>
               <tbody id="alerts-table"></tbody>
+            </table></div>
+          </article>
+        </section>
+
+        <section class="grid-2" style="margin-top:20px">
+          <article class="card">
+            <h2 style="margin-bottom:10px">Notifications sent</h2>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Channel</th><th>Status</th><th class="num">Count</th></tr></thead>
+              <tbody id="notify-table"></tbody>
+            </table></div>
+          </article>
+          <article class="card">
+            <h2 style="margin-bottom:10px">Alert log</h2>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Time</th><th>Type</th><th>Details</th><th>Status</th></tr></thead>
+              <tbody id="alert-log"></tbody>
             </table></div>
           </article>
         </section>
@@ -110,6 +139,16 @@
         ? r.daily.map((d) => `<tr><td>${d.day}</td><td class="num">${d.readings}</td><td class="num">${d.hr_avg}</td><td class="num">${d.hr_min}</td><td class="num">${d.hr_max}</td><td class="num">${d.temp_avg ?? '–'}</td><td class="num">${d.spo2_avg ?? '–'}</td></tr>`).join('')
         : '<tr><td colspan="7" class="muted">No readings in this period.</td></tr>';
 
+      $('#notify-table').innerHTML = r.notifications.length
+        ? r.notifications.map((n) => `<tr><td>${n.channel === 'Dashboard' ? 'Web dashboard' : n.channel}</td><td><span class="pill ${n.status}">${n.status}</span></td><td class="num">${n.count}</td></tr>`).join('')
+        : '<tr><td colspan="3" class="muted">No notifications in this period.</td></tr>';
+      $('#alert-log').innerHTML = r.alertLog.length
+        ? r.alertLog.map((a) => `<tr><td>${fmtDateTime(a.triggered_at)}</td><td><span class="pill ${a.alert_type}">${a.alert_type}</span></td><td>${esc(a.message)}</td><td><span class="pill ${a.status}">${a.status}</span></td></tr>`).join('')
+        : '<tr><td colspan="4" class="muted">No alerts in this period.</td></tr>';
+
+      const sel = $('#elderly_id');
+      $('#print-title').innerHTML = `<strong>Health report: ${esc(sel.options[sel.selectedIndex].text)}</strong> · ${$('#from').value} to ${$('#to').value}`;
+      $('#print-btn').hidden = false;
       $('#report').hidden = false;
       const day = (d) => parseDate(`${d.day} 12:00:00`);
       const series = [
@@ -122,9 +161,12 @@
     }
 
     (async () => {
-      const user = await startPage('reports.html', [ROLE.ADMIN, ROLE.CAREGIVER, ROLE.PROVIDER]);
+      const user = await startPage('reports.html', [ROLE.ADMIN, ROLE.CAREGIVER, ROLE.PROVIDER, ROLE.ELDERLY]);
       if (!user) return;
       const { people } = await api('/api/patients');
+      if (user.role_name === ROLE.ELDERLY) { $('h1').textContent = 'My health report'; $('#person-field').hidden = true; }
+      $('#print-btn').addEventListener('click', () => window.print());
+      connectLive();
       $('#elderly_id').innerHTML = people.map((p) => `<option value="${p.elderly_id}">${esc(p.full_name)}</option>`).join('') || '<option value="">Nobody assigned</option>';
       const today = new Date();
       $('#to').value = iso(today);

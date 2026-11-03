@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Log in · Elderly Heart Monitor</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0f1b3d" />
+  <link rel="icon" type="image/png" href="icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Heart Monitor" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -29,11 +37,15 @@
       <p class="muted small" style="text-align:center;margin:0">
         No account yet? <a href="register.html">Register</a>
       </p>
+      <button class="btn light install-btn" type="button" hidden>Install the app on this device</button>
     </div>
   </main>
 
   <script src="js/common.js"></script>
   <script>
+    // Already logged in
+    fetch('/api/auth/session').then((r) => r.json()).then((d) => { if (d.user) location.href = homePage(d.user); }).catch(() => {});
+
     $('#login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       showMsg($('#msg'), '');

@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>My Health · Elderly Heart Monitor</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0f1b3d" />
+  <link rel="icon" type="image/png" href="icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Heart Monitor" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -26,6 +34,19 @@
         <button class="panic" id="panic" type="button" aria-describedby="panic-help"><span class="fill" id="panic-fill"></span><span id="panic-text">PANIC<br />BUTTON</span></button>
         <p class="section-label" id="panic-help" style="margin:0">Press and hold for 2 seconds to send an emergency alert</p>
         <p class="msg" id="panic-msg" hidden></p>
+        <div class="offline-help" id="offline-help" hidden>
+          <p class="msg error" style="margin:0">No internet. Contact <span id="ec-name">your emergency contact</span> directly:</p>
+          <div class="form-actions">
+            <a class="btn primary" id="ec-call" href="#">Call now</a>
+            <a class="btn light" id="ec-sms" href="#">Send SMS</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2>My heart rate today</h2></div>
+        <canvas class="chart" id="hr-chart"></canvas>
+        <p class="muted small" style="margin:8px 0 0">Last 24 hours, averaged per minute. The green band is your normal range.</p>
       </section>
 
       <section class="card">
@@ -36,6 +57,7 @@
   </div>
 
   <script src="js/common.js"></script>
+  <script src="js/chart.js"></script>
   <script>
     const UNITS = { heart_rate_bpm: 'bpm', temperature_c: '°C', spo2_percent: '%' };
 
@@ -91,7 +113,13 @@
           }, 15000);
         } catch (err) {
           fill.style.height = '0';
-          showMsg($('#panic-msg'), err.message);
+          // No internet: use the phone instead
+          if (!navigator.onLine || err instanceof TypeError) {
+            showMsg($('#panic-msg'), '');
+            $('#offline-help').hidden = false;
+          } else {
+            showMsg($('#panic-msg'), err.message);
+          }
         }
       }
       btn.addEventListener('pointerdown', begin);
@@ -108,6 +136,30 @@
       const id = user.elderly_id;
       const [info, readings] = await Promise.all([api(`/api/patients/${id}`), api(`/api/patients/${id}/readings?hours=1`)]);
       if (readings.recent.length) show(readings.recent[readings.recent.length - 1], readings.check);
+      // Emergency contact for offline use
+      const p = info.profile;
+      const phone = String(p.emergency_contact_phone || '').replace(/\s/g, '');
+      $('#ec-name').textContent = p.emergency_contact_name;
+      $('#ec-call').href = `tel:${phone}`;
+      $('#ec-sms').href = `sms:${phone}?body=${encodeURIComponent(`EMERGENCY: ${user.full_name} pressed the panic button and needs help now.`)}`;
+      const showOffline = () => { $('#offline-help').hidden = navigator.onLine; };
+      window.addEventListener('offline', showOffline);
+      window.addEventListener('online', showOffline);
+      showOffline();
+
+      // Heart rate chart
+      const th = info.thresholds.find((t) => t.vital_type === 'heart_rate_bpm');
+      const drawChart = async () => {
+        const d = await api(`/api/patients/${id}/readings?hours=24`);
+        lineChart($('#hr-chart'), {
+          series: [{ name: 'Heart rate', points: d.perMinute.map((r) => ({ x: parseDate(r.t), y: r.heart_rate_bpm })) }],
+          band: th ? { lo: th.min_value, hi: th.max_value } : null,
+          xFormat: 'time',
+        });
+      };
+      drawChart();
+      setInterval(() => { if (navigator.onLine) drawChart().catch(() => {}); }, 60000);
+
       const names = [...info.caregivers.map((c) => `${c.full_name} (${c.relationship || 'caregiver'}, SMS)`), ...info.providers.map((p) => `${p.full_name} (doctor)`)];
       $('#team').textContent = names.length ? names.join(', ') : 'Nobody is assigned yet. Ask the administrator to add your caregiver.';
       wirePanic();

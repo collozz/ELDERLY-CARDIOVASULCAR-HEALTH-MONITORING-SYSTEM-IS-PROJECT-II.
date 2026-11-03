@@ -74,7 +74,23 @@ router.get('/summary', async (req, res) => {
     p
   );
 
-  res.json({ stats, outside, alerts, daily });
+  // Notifications sent
+  const notifications = await db.query(
+    `SELECT n.channel, n.status, COUNT(*) AS count FROM tbl_notification n
+     JOIN tbl_alert a ON a.alert_id = n.alert_id
+     WHERE a.elderly_id = ? AND a.triggered_at BETWEEN ? AND ?
+     GROUP BY n.channel, n.status ORDER BY n.channel, n.status`,
+    p
+  );
+
+  // Alert log
+  const alertLog = await db.query(
+    `SELECT alert_id, alert_type, severity, message, status, triggered_at FROM tbl_alert
+     WHERE elderly_id = ? AND triggered_at BETWEEN ? AND ? ORDER BY triggered_at DESC LIMIT 50`,
+    p
+  );
+
+  res.json({ stats, outside, alerts, daily, notifications, alertLog });
 });
 
 router.get('/export.csv', async (req, res) => {

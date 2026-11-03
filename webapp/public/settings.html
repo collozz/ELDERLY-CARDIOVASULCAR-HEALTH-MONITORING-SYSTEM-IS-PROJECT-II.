@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Settings · Elderly Heart Monitor</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0f1b3d" />
+  <link rel="icon" type="image/png" href="icons/favicon-32.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Heart Monitor" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -30,6 +38,39 @@
           <button class="btn primary" type="submit">Change password</button>
         </form>
       </section>
+
+      <section class="card" id="push-card">
+        <div class="setting-row">
+          <div>
+            <h2>Alert notifications on this device</h2>
+            <p class="muted small" style="margin:4px 0 0" id="push-state">Checking…</p>
+          </div>
+          <div class="form-actions">
+            <button class="btn primary" type="button" id="push-on" hidden>Turn on</button>
+            <button class="btn light" type="button" id="push-test" hidden>Send test</button>
+            <button class="btn light" type="button" id="push-off" hidden>Turn off</button>
+          </div>
+        </div>
+        <p class="msg" id="push-msg" hidden></p>
+      </section>
+
+      <section class="card" id="install-card">
+        <div class="setting-row">
+          <div>
+            <h2>Install the app</h2>
+            <p class="muted small" style="margin:4px 0 0" id="install-state">Add Elderly Heart Monitor to your home screen to open it like an app.</p>
+          </div>
+          <button class="btn primary install-btn" type="button" hidden>Install app</button>
+        </div>
+      </section>
+
+      <form class="card" id="sms-card" hidden>
+        <h2>SMS gateway</h2>
+        <p class="muted small" style="margin:0" id="sms-state">Checking…</p>
+        <label>Send a test SMS to <input name="phone" id="sms-phone" placeholder="+2547…" /></label>
+        <p class="msg" id="sms-msg" hidden></p>
+        <button class="btn primary" type="submit">Send test SMS</button>
+      </form>
     </main>
   </div>
 
@@ -42,6 +83,56 @@
       $('#phone_number').value = user.phone_number || '';
       $('#email').value = user.email;
       connectLive();
+
+      // Alert notifications
+      const forAlerts = user.role_name !== ROLE.ELDERLY;
+      $('#push-card').hidden = !forAlerts;
+      async function pushState() {
+        const on = !!(await currentPushSub().catch(() => null));
+        $('#push-on').hidden = on || !pushSupported();
+        $('#push-off').hidden = !on;
+        $('#push-test').hidden = !on;
+        $('#push-state').textContent = !pushSupported()
+          ? 'Not available in this browser. Use Chrome or Edge, on localhost or an https link.'
+          : on ? 'On. Alerts for your elderly will pop up on this device, even when the app is closed.' : 'Off. Turn on to get a pop-up on this device when an alert happens.';
+      }
+      if (forAlerts) pushState();
+      $('#push-on').addEventListener('click', async () => {
+        try { await enablePush(); showMsg($('#push-msg'), 'Notifications turned on.', true); } catch (err) { showMsg($('#push-msg'), err.message); }
+        pushState();
+      });
+      $('#push-off').addEventListener('click', async () => {
+        try { await disablePush(); showMsg($('#push-msg'), 'Notifications turned off.', true); } catch (err) { showMsg($('#push-msg'), err.message); }
+        pushState();
+      });
+      $('#push-test').addEventListener('click', async () => {
+        try { await api('/api/notify/test-push', { method: 'POST' }); showMsg($('#push-msg'), 'Test sent. It should pop up in a few seconds.', true); } catch (err) { showMsg($('#push-msg'), err.message); }
+      });
+
+      // Already installed
+      if (matchMedia('(display-mode: standalone)').matches) $('#install-state').textContent = 'You are using the installed app.';
+      else if (/iphone|ipad/i.test(navigator.userAgent)) $('#install-state').textContent = 'On iPhone: tap Share, then Add to Home Screen.';
+
+      // SMS gateway
+      if (user.role_name === ROLE.ADMIN) {
+        $('#sms-card').hidden = false;
+        $('#sms-phone').value = user.phone_number || '';
+        const MODES = {
+          simulate: 'Simulation mode: no API key set, so SMS messages are only printed in the server window.',
+          sandbox: "Africa's Talking sandbox: messages appear in the sandbox simulator, not on real phones.",
+          live: "Africa's Talking live: real SMS messages are sent to phones.",
+        };
+        api('/api/notify/sms-status').then((d) => { $('#sms-state').textContent = MODES[d.mode]; });
+        $('#sms-card').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          try {
+            await api('/api/notify/test-sms', { method: 'POST', body: formData(e.target) });
+            showMsg($('#sms-msg'), 'Test SMS sent.', true);
+          } catch (err) {
+            showMsg($('#sms-msg'), err.message);
+          }
+        });
+      }
 
       $('#profile-form').addEventListener('submit', async (e) => {
         e.preventDefault();

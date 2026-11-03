@@ -18,7 +18,7 @@ const MENUS = {
   [ROLE.ADMIN]: [['dashboard.html', 'Dashboard'], ['patients.html', 'Elderly'], ['alerts.html', 'Alerts'], ['reports.html', 'Reports'], ['admin.html', 'Administration'], ['settings.html', 'Settings']],
   [ROLE.CAREGIVER]: [['dashboard.html', 'Dashboard'], ['patients.html', 'My Elderly'], ['alerts.html', 'Alerts'], ['reports.html', 'Reports'], ['settings.html', 'Settings']],
   [ROLE.PROVIDER]: [['dashboard.html', 'Dashboard'], ['patients.html', 'My Patients'], ['alerts.html', 'Alerts'], ['reports.html', 'Reports'], ['settings.html', 'Settings']],
-  [ROLE.ELDERLY]: [['my-health.html', 'My Health'], ['alerts.html', 'My Alerts'], ['settings.html', 'Settings']],
+  [ROLE.ELDERLY]: [['my-health.html', 'My Health'], ['alerts.html', 'My Alerts'], ['reports.html', 'My Reports'], ['settings.html', 'Settings']],
 };
 
 const homePage = (user) => (user.role_name === ROLE.ELDERLY ? 'my-health.html' : 'dashboard.html');
@@ -116,16 +116,18 @@ async function startPage(active, allowed = []) {
     <a class="brand" href="${homePage(user)}"><span class="heart" aria-hidden="true">♥</span> Elderly Heart Monitor</a>
     <div class="user-menu">
       <span class="conn" title="Connection to the ESP32"><span class="dot" id="conn-dot"></span><span class="conn-text" id="conn-text">Connecting…</span></span>
-      <span><span class="role">${esc(user.role_name)}:</span> ${esc(user.full_name)}</span>
+      <span class="who-am-i"><span class="role">${esc(user.role_name)}:</span> ${esc(user.full_name)}</span>
+      <button class="btn light small install-btn" type="button" hidden>Install app</button>
       <button class="btn light small" id="logout-btn" type="button">Log out</button>
     </div>`;
   $('#nav').innerHTML = (MENUS[user.role_name] || [])
-    .map(([href, label]) => `<a href="${href}" class="${href === active ? 'active' : ''}">${label}</a>`)
+    .map(([href, label]) => `<a href="${href}" class="${href === active ? 'active' : ''}" data-short="${label === 'Administration' ? 'Admin' : label}">${label}</a>`)
     .join('');
   $('#logout-btn').addEventListener('click', async () => {
     await api('/api/auth/logout', { method: 'POST' });
     location.href = 'login.html';
   });
+  showInstallButtons();
   return user;
 }
 
@@ -156,4 +158,88 @@ function connectLive(handlers = {}) {
     if (dot) { dot.className = 'dot'; $('#conn-text').textContent = 'Reconnecting…'; }
   };
   return es;
+}
+
+// Offline app support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+
+// Install button
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  installPrompt = e;
+  showInstallButtons();
+});
+window.addEventListener('appinstalled', () => {
+  installPrompt = null;
+  showInstallButtons();
+});
+function showInstallButtons() {
+  for (const btn of $$('.install-btn')) {
+    btn.hidden = !installPrompt;
+    btn.onclick = async () => {
+      if (!installPrompt) return;
+      installPrompt.prompt();
+      await installPrompt.userChoice;
+      installPrompt = null;
+      showInstallButtons();
+    };
+  }
+}
+
+// Online / offline notice
+function updateOnline() {
+  let bar = $('#offline-bar');
+  if (navigator.onLine) {
+    if (bar) bar.hidden = true;
+    return;
+  }
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'offline-bar';
+    bar.className = 'offline-bar';
+    bar.textContent = 'You are offline. Readings will update when the connection is back.';
+    document.body.prepend(bar);
+  }
+  bar.hidden = false;
+}
+window.addEventListener('online', updateOnline);
+window.addEventListener('offline', updateOnline);
+window.addEventListener('load', updateOnline);
+
+// Phone notifications
+const pushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && window.isSecureContext;
+
+function urlKey(base64) {
+  const pad = '='.repeat((4 - (base64.length % 4)) % 4);
+  const raw = atob((base64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+}
+
+async function currentPushSub() {
+  if (!pushSupported()) return null;
+  const reg = await navigator.serviceWorker.ready;
+  return reg.pushManager.getSubscription();
+}
+
+async function enablePush() {
+  if (!pushSupported()) throw new Error('This browser cannot show notifications here. Use Chrome or Edge, on localhost or an https link.');
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') throw new Error('Notifications are blocked. Allow them in the browser site settings.');
+  await navigator.serviceWorker.register('sw.js');
+  const reg = await navigator.serviceWorker.ready;
+  const { publicKey } = await api('/api/notify/push-key');
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlKey(publicKey) });
+  await api('/api/notify/subscribe', { method: 'POST', body: { subscription: sub.toJSON() } });
+  return sub;
+}
+
+async function disablePush() {
+  const sub = await currentPushSub();
+  if (!sub) return;
+  await api('/api/notify/unsubscribe', { method: 'POST', body: { endpoint: sub.endpoint } });
+  await sub.unsubscribe();
 }

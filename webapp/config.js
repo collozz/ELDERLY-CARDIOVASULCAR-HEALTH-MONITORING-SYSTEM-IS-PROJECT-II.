@@ -1,5 +1,7 @@
 // System settings
 
+require('dotenv').config({ path: require('path').join(__dirname, '.env'), quiet: true });
+
 module.exports = {
   PORT: process.env.PORT || 3000,
   SESSION_SECRET: process.env.SESSION_SECRET || 'change-this-secret-before-deploying',
@@ -43,6 +45,10 @@ module.exports = {
     spo2_percent: { label: 'Blood oxygen (SpO₂)', unit: '%' },
   },
 
-  // SMS settings
-  SMS_MODE: 'simulate',
+  // SMS gateway (Africa's Talking)
+  SMS: {
+    USERNAME: process.env.AT_USERNAME || 'sandbox',
+    API_KEY: process.env.AT_API_KEY || '',
+    SENDER_ID: process.env.AT_SENDER_ID || '',
+  },
 };

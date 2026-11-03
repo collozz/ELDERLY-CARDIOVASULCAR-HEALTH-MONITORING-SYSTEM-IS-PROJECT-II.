@@ -92,6 +92,15 @@ async function renderOverview() {
     renderOverview();
   }
 
+  // Ask to turn on phone notifications
+  if (user.role_name !== ROLE.ADMIN && pushSupported() && Notification.permission === 'default') {
+    $('#push-tip').hidden = false;
+    $('#push-tip-btn').addEventListener('click', async () => {
+      try { await enablePush(); toast('Alert notifications are on for this device.'); } catch (err) { toast(err.message); }
+      $('#push-tip').hidden = true;
+    });
+  }
+
   people = (await api('/api/patients')).people;
   renderPeople();
   renderBanner();

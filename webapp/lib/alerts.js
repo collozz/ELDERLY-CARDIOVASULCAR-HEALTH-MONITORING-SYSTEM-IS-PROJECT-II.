@@ -3,6 +3,8 @@
 const db = require('../db');
 const config = require('../config');
 const live = require('./live');
+const { sendSms } = require('./sms');
+const push = require('./push');
 
 // People to notify
 async function recipients(elderlyId) {
@@ -19,16 +21,6 @@ async function recipients(elderlyId) {
     [elderlyId]
   );
   return { caregivers, providers };
-}
-
-// Send SMS
-async function sendSms(phone, message) {
-  if (config.SMS_MODE === 'simulate') {
-    console.log(`[SMS to ${phone || 'no phone'}] ${message}`);
-    return phone ? 'Sent' : 'Failed';
-  }
-  // SMS API goes here
-  return 'Pending';
 }
 
 async function createAlert({ elderlyId, readingId = null, alertType, severity, message }) {
@@ -53,17 +45,28 @@ async function createAlert({ elderlyId, readingId = null, alertType, severity, m
       [alertId, u.user_id, `${severity} alert for ${name}: ${message}`.slice(0, 255)]
     );
   }
-  for (const u of caregivers) {
-    const status = await sendSms(u.phone_number, smsText);
-    await db.query(
-      `INSERT INTO tbl_notification (alert_id, recipient_user_id, channel, message, status, sent_at)
-       VALUES (?, ?, 'SMS', ?, ?, ${status === 'Sent' ? 'NOW()' : 'NULL'})`,
-      [alertId, u.user_id, smsText, status]
-    );
-  }
-
   const alert = await db.one('SELECT * FROM tbl_alert WHERE alert_id = ?', [alertId]);
   live.send('alert', { ...alert, full_name: name }, elderlyId);
+
+  const people = [...caregivers, ...providers];
+  await Promise.all([
+    // SMS to caregivers and providers
+    ...people.map(async (u) => {
+      const status = await sendSms(u.phone_number, smsText);
+      await db.query(
+        `INSERT INTO tbl_notification (alert_id, recipient_user_id, channel, message, status, sent_at)
+         VALUES (?, ?, 'SMS', ?, ?, ${status === 'Sent' ? 'NOW()' : 'NULL'})`,
+        [alertId, u.user_id, smsText, status]
+      );
+    }),
+    // Phone notifications
+    push.notifyUsers(people.map((u) => u.user_id), {
+      title: `${alertType === 'Panic' ? 'PANIC' : severity + ' alert'}: ${name}`,
+      body: message,
+      url: `/patient.html?id=${elderlyId}`,
+      tag: `alert-${alertId}`,
+    }),
+  ]);
   return alert;
 }
 
