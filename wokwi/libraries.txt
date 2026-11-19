@@ -1,3 +1,0 @@
-# Wokwi Library List
-PubSubClient
-ArduinoJson@6.21.5

@@ -35,6 +35,7 @@ async function evaluate(elderlyId, reading) {
 }
 
 async function saveReading(raw, source) {
+  if (raw.panic) return savePanic(raw);
   const reading = {
     heart_rate_bpm: Math.round(Number(raw.heart_rate_bpm)),
     temperature_c: raw.temperature_c === undefined ? null : Number(raw.temperature_c),
@@ -81,6 +82,23 @@ async function saveReading(raw, source) {
 
   live.send('reading', { ...saved, elderly_id: device.elderly_id, source, ...check }, device.elderly_id);
   return { reading: saved, alert };
+}
+
+// Panic button on the device
+async function savePanic(raw) {
+  const serial = raw.serial_number || config.DEFAULT_DEVICE_SERIAL;
+  const device = await db.one(
+    `SELECT elderly_id FROM tbl_device WHERE serial_number = ? AND status = 'Active'`,
+    [serial]
+  );
+  if (!device) return null;
+  const alert = await createAlert({
+    elderlyId: device.elderly_id,
+    alertType: 'Panic',
+    severity: 'Critical',
+    message: 'Panic button pressed on device',
+  });
+  return { alert };
 }
 
 module.exports = { saveReading, evaluate };

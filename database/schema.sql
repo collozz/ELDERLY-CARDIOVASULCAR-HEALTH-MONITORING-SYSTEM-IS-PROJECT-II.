@@ -136,7 +136,7 @@ CREATE TABLE tbl_threshold (
 CREATE TABLE tbl_device (
   device_id       INT         NOT NULL AUTO_INCREMENT,
   elderly_id      INT         NOT NULL,
-  device_type     VARCHAR(50) NOT NULL COMMENT 'e.g. ESP32 (Wokwi simulated)',
+  device_type     VARCHAR(50) NOT NULL COMMENT 'e.g. ESP32 DevKit V1',
   serial_number   VARCHAR(50) NOT NULL,
   status          VARCHAR(20) NOT NULL DEFAULT 'Active',
   last_synced_at  DATETIME    NULL,

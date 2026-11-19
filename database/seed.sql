@@ -39,8 +39,8 @@ INSERT INTO tbl_threshold (elderly_id, provider_id, vital_type, min_value, max_v
   (2, 1, 'spo2_percent',   92.0, 100.0);
 
 INSERT INTO tbl_device (device_id, elderly_id, device_type, serial_number, status, last_synced_at) VALUES
-  (1, 1, 'ESP32 (Wokwi simulated)', 'WOKWI-ESP32-001', 'Active', '2026-10-14 08:00:09'),
-  (2, 2, 'ESP32 (Wokwi simulated)', 'WOKWI-ESP32-002', 'Inactive', NULL);
+  (1, 1, 'ESP32 DevKit V1', 'ESP32-001', 'Active', '2026-10-14 08:00:09'),
+  (2, 2, 'ESP32 DevKit V1', 'ESP32-002', 'Inactive', NULL);
 
 INSERT INTO tbl_health_reading (reading_id, device_id, heart_rate_bpm, temperature_c, spo2_percent, recorded_at) VALUES
   (1, 1,  74, 36.6, 97.00, '2026-10-14 08:00:00'),

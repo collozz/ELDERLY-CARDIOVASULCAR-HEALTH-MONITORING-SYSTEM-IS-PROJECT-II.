@@ -20,7 +20,7 @@ module.exports = {
   MQTT_TOPIC: 'strathmore/167071/elderly-monitor/vitals',
 
   // Default device
-  DEFAULT_DEVICE_SERIAL: 'WOKWI-ESP32-001',
+  DEFAULT_DEVICE_SERIAL: 'ESP32-001',
 
   // Backup simulator timing
   FALLBACK_AFTER_MS: 10000,

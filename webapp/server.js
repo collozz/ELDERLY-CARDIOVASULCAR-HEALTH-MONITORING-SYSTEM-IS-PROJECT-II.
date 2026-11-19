@@ -52,7 +52,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// MQTT readings from Wokwi
+// MQTT readings from the ESP32
 let lastDeviceReading = 0;
 let lastMqttError = '';
 
@@ -71,7 +71,7 @@ if (!SIMULATE_ONLY) {
   client.on('message', async (_topic, payload) => {
     try {
       lastDeviceReading = Date.now();
-      await saveReading(JSON.parse(payload.toString()), 'wokwi');
+      await saveReading(JSON.parse(payload.toString()), 'device');
     } catch (err) {
       console.log('Could not save reading:', err.message);
     }
@@ -93,7 +93,6 @@ function simulateReading() {
     sim.heart_rate_bpm = drift(sim.heart_rate_bpm, 74, 3, 0.15);
     sim.temperature_c = drift(sim.temperature_c, 36.7, 0.08, 0.15);
     sim.spo2_percent = drift(sim.spo2_percent, 97, 0.5, 0.15);
-    if (Math.random() < 0.01) sim.episode = 8;
   }
   sim.spo2_percent = Math.min(sim.spo2_percent, 100);
   return {
@@ -129,5 +128,5 @@ db.query('SELECT 1')
 
 app.listen(config.PORT, () => {
   console.log(`Open http://localhost:${config.PORT} in your browser`);
-  if (SIMULATE_ONLY) console.log('Running with the built-in simulator only (no Wokwi).');
+  if (SIMULATE_ONLY) console.log('Running with the built-in simulator only (no ESP32).');
 });
