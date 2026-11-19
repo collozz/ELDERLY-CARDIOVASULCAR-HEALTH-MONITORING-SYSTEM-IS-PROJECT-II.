@@ -1,4 +1,4 @@
-// Elderly heart monitor: ESP32 with MAX30100 and DHT22
+// Elderly heart monitor: ESP32 with MAX30100 and DHT22/DHT11
 
 #include <WiFi.h>
 #include <Wire.h>
@@ -24,6 +24,9 @@ const int DHT_PIN    = 27;
 const int BUTTON_PIN = 4;
 const int LED_PIN    = 2;
 
+// Temperature sensor type: DHT22 or DHT11
+#define DHT_TYPE DHT22
+
 // DHT22 reads skin or air, so add a fixed offset to get body range
 const float TEMP_OFFSET = 3.5;
 
@@ -31,7 +34,7 @@ const float TEMP_OFFSET = 3.5;
 WiFiClient espClient;
 PubSubClient mqtt(espClient);
 PulseOximeter pox;
-DHT dht(DHT_PIN, DHT22);
+DHT dht(DHT_PIN, DHT_TYPE);
 
 unsigned long lastRead = 0;
 unsigned long lastMqttTry = 0;
