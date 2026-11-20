@@ -1,11 +1,14 @@
-// Elderly heart monitor: ESP32 with MAX30100 and DHT22/DHT11
+// Elderly heart monitor: ESP32 with MAX30102 and DS18B20
 
 #include <WiFi.h>
 #include <Wire.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
-#include <DHT.h>
-#include "MAX30100_PulseOximeter.h"
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include "MAX30105.h"
+#include "heartRate.h"
+#include "spo2_algorithm.h"
 
 // Wi-Fi (2.4 GHz only)
 const char* WIFI_SSID     = "YOUR_WIFI_NAME";
@@ -20,34 +23,36 @@ const char* PATIENT_ID  = "P001";
 const unsigned long READ_INTERVAL_MS = 3000;
 
 // Pins
-const int DHT_PIN    = 27;
+const int TEMP_PIN   = 27;
 const int BUTTON_PIN = 4;
 const int LED_PIN    = 2;
 
-// Temperature sensor type: DHT22 or DHT11
-#define DHT_TYPE DHT22
-
-// DHT22 reads skin or air, so add a fixed offset to get body range
-const float TEMP_OFFSET = 3.5;
+// IR level that means a finger is on the sensor
+const long FINGER_IR = 50000;
 
 // Connections and sensors
 WiFiClient espClient;
 PubSubClient mqtt(espClient);
-PulseOximeter pox;
-DHT dht(DHT_PIN, DHT_TYPE);
+MAX30105 pulseSensor;
+OneWire oneWire(TEMP_PIN);
+DallasTemperature tempSensor(&oneWire);
 
+// Sample buffers for heart rate and SpO2
+const int BUFFER_SIZE = 100;
+uint32_t irBuffer[BUFFER_SIZE];
+uint32_t redBuffer[BUFFER_SIZE];
+int samples = 0;
+bool fingerOn = false;
+
+int heartRate = 0;
+int spo2 = 0;
+float temperature = 0;
 unsigned long lastRead = 0;
 unsigned long lastMqttTry = 0;
 unsigned long lastBeat = 0;
 unsigned long panicUntil = 0;
 unsigned long readingNo = 0;
-float temperature = 36.6;
 bool lastButton = HIGH;
-
-// Flash LED on each heartbeat
-void onBeat() {
-  lastBeat = millis();
-}
 
 void connectWiFi() {
   Serial.print("Connecting to WiFi");
@@ -79,40 +84,91 @@ void connectMQTT() {
   }
 }
 
-void startSensor() {
-  Serial.print("Starting MAX30100... ");
-  if (!pox.begin()) {
-    Serial.println("FAILED, check wiring and pull-up resistors");
+void startSensors() {
+  Serial.print("Starting MAX30102... ");
+  if (!pulseSensor.begin(Wire, I2C_SPEED_FAST)) {
+    Serial.println("FAILED, check SDA/SCL/VIN/GND wires");
     while (true) {
       digitalWrite(LED_PIN, !digitalRead(LED_PIN));
       delay(200);
     }
   }
   Serial.println("ok");
-  pox.setIRLedCurrent(MAX30100_LED_CURR_7_6MA);
-  pox.setOnBeatDetectedCallback(onBeat);
+  // Brightness, averaging, red+IR mode, 100 Hz, pulse width, range
+  pulseSensor.setup(60, 4, 2, 100, 411, 4096);
+
+  tempSensor.begin();
+  tempSensor.setWaitForConversion(false);
+  tempSensor.requestTemperatures();
+  if (tempSensor.getDeviceCount() == 0) Serial.println("DS18B20 not found, check wires and 4.7k resistor");
+}
+
+// Read new samples from the MAX30102
+void readPulseSensor() {
+  pulseSensor.check();
+  while (pulseSensor.available()) {
+    uint32_t ir = pulseSensor.getFIFOIR();
+    uint32_t red = pulseSensor.getFIFORed();
+    pulseSensor.nextSample();
+
+    fingerOn = ir > FINGER_IR;
+    if (!fingerOn) {
+      samples = 0;
+      heartRate = 0;
+      spo2 = 0;
+      continue;
+    }
+    if (checkForBeat(ir)) lastBeat = millis();
+
+    irBuffer[samples] = ir;
+    redBuffer[samples] = red;
+    samples++;
+    if (samples == BUFFER_SIZE) {
+      calculateVitals();
+      // Keep the newest 75 samples, refill 25
+      for (int i = 25; i < BUFFER_SIZE; i++) {
+        irBuffer[i - 25] = irBuffer[i];
+        redBuffer[i - 25] = redBuffer[i];
+      }
+      samples = 75;
+    }
+  }
+}
+
+// Heart rate and SpO2 from the buffer
+void calculateVitals() {
+  int32_t newSpo2, newHr;
+  int8_t spo2Valid, hrValid;
+  maxim_heart_rate_and_oxygen_saturation(irBuffer, BUFFER_SIZE, redBuffer, &newSpo2, &spo2Valid, &newHr, &hrValid);
+
+  if (hrValid && newHr >= 30 && newHr <= 220) {
+    heartRate = heartRate == 0 ? newHr : (heartRate * 7 + newHr * 3) / 10;
+  }
+  if (spo2Valid && newSpo2 >= 70 && newSpo2 <= 100) {
+    spo2 = spo2 == 0 ? newSpo2 : (spo2 * 7 + newSpo2 * 3) / 10;
+  }
 }
 
 void readTemperature() {
-  float t = dht.readTemperature();
-  if (!isnan(t)) temperature = t + TEMP_OFFSET;
+  float t = tempSensor.getTempCByIndex(0);
+  if (t != DEVICE_DISCONNECTED_C && t != 85.0) temperature = t;
+  tempSensor.requestTemperatures();
 }
 
 void publishReadings() {
-  int heartRate = (int)round(pox.getHeartRate());
-  int spo2 = pox.getSpO2();
-
   StaticJsonDocument<200> doc;
   doc["patient_id"] = PATIENT_ID;
   doc["seq"] = readingNo;
   // No finger: send without heart rate so the server ignores it
-  if (heartRate > 0 && spo2 > 0) {
+  if (fingerOn && heartRate > 0 && spo2 > 0) {
     doc["heart_rate_bpm"] = heartRate;
     doc["spo2_percent"] = spo2;
-  } else {
+  } else if (!fingerOn) {
     Serial.println("Place finger on the sensor");
+  } else {
+    Serial.println("Reading pulse, keep finger still");
   }
-  doc["temperature_c"] = round(temperature * 10) / 10.0;
+  if (temperature > 0) doc["temperature_c"] = round(temperature * 10) / 10.0;
 
   char payload[200];
   serializeJson(doc, payload);
@@ -138,15 +194,14 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   randomSeed(esp_random());
 
-  dht.begin();
   connectWiFi();
   mqtt.setServer(MQTT_BROKER, MQTT_PORT);
   connectMQTT();
-  startSensor();
+  startSensors();
 }
 
 void loop() {
-  pox.update();
+  readPulseSensor();
 
   connectMQTT();
   mqtt.loop();
