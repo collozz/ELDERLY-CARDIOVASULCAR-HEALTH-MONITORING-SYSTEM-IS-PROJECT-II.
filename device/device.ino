@@ -37,8 +37,7 @@ MAX30105 pulseSensor;
 OneWire oneWire(TEMP_PIN);
 DallasTemperature tempSensor(&oneWire);
 
-// Sample buffers for heart rate and SpO2
-const int BUFFER_SIZE = 100;
+// Sample buffers (BUFFER_SIZE = 100 comes from spo2_algorithm.h)
 uint32_t irBuffer[BUFFER_SIZE];
 uint32_t redBuffer[BUFFER_SIZE];
 int samples = 0;
