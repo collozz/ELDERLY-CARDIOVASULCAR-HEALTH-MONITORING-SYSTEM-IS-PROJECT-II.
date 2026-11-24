@@ -10,7 +10,7 @@ async function connect(req, res) {
   res.flushHeaders();
   const client = { res, elderlyIds: await visibleElderlyIds(req.session.user) };
   clients.add(client);
-  res.write(`event: status\ndata: ${JSON.stringify(status)}\n\n`);
+  res.write(statusMsg(client));
   req.on('close', () => clients.delete(client));
 }
 
@@ -22,10 +22,16 @@ function send(event, data, elderlyId) {
   }
 }
 
+// Only show who gets the ESP32 to people assigned to them
+function statusMsg(c) {
+  const { liveElderlyId, liveName, ...rest } = status;
+  const data = c.elderlyIds.includes(Number(liveElderlyId)) ? { ...rest, liveName } : rest;
+  return `event: status\ndata: ${JSON.stringify(data)}\n\n`;
+}
+
 function setStatus(next) {
   status = { ...status, ...next };
-  const msg = `event: status\ndata: ${JSON.stringify(status)}\n\n`;
-  for (const c of clients) c.res.write(msg);
+  for (const c of clients) c.res.write(statusMsg(c));
 }
 
 module.exports = { connect, send, setStatus, getStatus: () => status };

@@ -139,12 +139,13 @@ function connectLive(handlers = {}) {
     const dot = $('#conn-dot');
     const text = $('#conn-text');
     if (!dot) return;
+    const who = s.liveName ? ` · ${s.liveName.split(' ')[0]}` : '';
     if (s.deviceLive) {
       dot.className = 'dot live';
-      text.textContent = 'Live from ESP32';
+      text.textContent = 'Live from ESP32' + who;
     } else {
       dot.className = 'dot backup';
-      text.textContent = 'Simulated readings';
+      text.textContent = 'Simulated readings' + who;
     }
   });
   es.addEventListener('reading', (e) => handlers.reading && handlers.reading(JSON.parse(e.data)));

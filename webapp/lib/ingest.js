@@ -34,6 +34,24 @@ async function evaluate(elderlyId, reading) {
   return { statuses, problems, severity };
 }
 
+// Device that gets the readings
+async function findDevice(serial) {
+  if (serial) {
+    return db.one(`SELECT device_id, elderly_id FROM tbl_device WHERE serial_number = ? AND status = 'Active'`, [serial]);
+  }
+  // Real ESP32 sends no serial, so use the Active device
+  return activeDevice();
+}
+
+// The one Active device and who wears it
+function activeDevice() {
+  return db.one(
+    `SELECT d.device_id, d.elderly_id, d.serial_number, u.full_name FROM tbl_device d
+     JOIN tbl_elderly_profile e ON e.elderly_id = d.elderly_id JOIN tbl_user u ON u.user_id = e.user_id
+     WHERE d.status = 'Active' ORDER BY d.last_synced_at DESC, d.device_id LIMIT 1`
+  );
+}
+
 async function saveReading(raw, source) {
   if (raw.panic) return savePanic(raw);
   const reading = {
@@ -43,13 +61,9 @@ async function saveReading(raw, source) {
   };
   if (Number.isNaN(reading.heart_rate_bpm)) return null;
 
-  const serial = raw.serial_number || config.DEFAULT_DEVICE_SERIAL;
-  const device = await db.one(
-    `SELECT device_id, elderly_id FROM tbl_device WHERE serial_number = ? AND status = 'Active'`,
-    [serial]
-  );
+  const device = await findDevice(raw.serial_number);
   if (!device) {
-    console.log(`Reading ignored: no active device with serial ${serial}`);
+    console.log('Reading ignored: no Active device. Set one to Active on the Admin > Devices page.');
     return null;
   }
 
@@ -86,11 +100,7 @@ async function saveReading(raw, source) {
 
 // Panic button on the device
 async function savePanic(raw) {
-  const serial = raw.serial_number || config.DEFAULT_DEVICE_SERIAL;
-  const device = await db.one(
-    `SELECT elderly_id FROM tbl_device WHERE serial_number = ? AND status = 'Active'`,
-    [serial]
-  );
+  const device = await findDevice(raw.serial_number);
   if (!device) return null;
   const alert = await createAlert({
     elderlyId: device.elderly_id,
@@ -101,4 +111,4 @@ async function savePanic(raw) {
   return { alert };
 }
 
-module.exports = { saveReading, evaluate };
+module.exports = { saveReading, evaluate, activeDevice };

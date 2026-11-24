@@ -78,9 +78,11 @@ router.post('/devices', async (req, res) => {
   if (!elderly_id || !device_type || !serial_number) {
     return res.status(400).json({ error: 'Choose a person and enter the device type and serial number.' });
   }
+  // Keep a single Active device
+  const hasActive = await db.one(`SELECT device_id FROM tbl_device WHERE status = 'Active' LIMIT 1`);
   try {
-    await db.query('INSERT INTO tbl_device (elderly_id, device_type, serial_number) VALUES (?, ?, ?)', [
-      elderly_id, device_type.trim(), serial_number.trim(),
+    await db.query('INSERT INTO tbl_device (elderly_id, device_type, serial_number, status) VALUES (?, ?, ?, ?)', [
+      elderly_id, device_type.trim(), serial_number.trim(), hasActive ? 'Inactive' : 'Active',
     ]);
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ error: 'A device with this serial number already exists.' });
@@ -94,6 +96,10 @@ router.put('/devices/:id', async (req, res) => {
   const { status, elderly_id } = req.body;
   if (!['Active', 'Inactive', 'Faulty'].includes(status) || !elderly_id) {
     return res.status(400).json({ error: 'Choose a person and a valid status.' });
+  }
+  // Only one Active device, it gets the real ESP32 readings
+  if (status === 'Active') {
+    await db.query(`UPDATE tbl_device SET status = 'Inactive' WHERE status = 'Active' AND device_id <> ?`, [req.params.id]);
   }
   await db.query('UPDATE tbl_device SET status = ?, elderly_id = ? WHERE device_id = ?', [status, elderly_id, req.params.id]);
   await db.log(req.session.user.user_id, 'Updated device', `Device #${req.params.id}: ${status}`);

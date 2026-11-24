@@ -40,7 +40,7 @@ async function loadDevices() {
         </select>
       </td>
       <td>${d.last_synced_at ? timeAgo(d.last_synced_at) : 'Never'}</td>
-      <td></td>
+      <td>${d.status === 'Active' ? '<span class="pill normal">Gets ESP32</span>' : ''}</td>
     </tr>`)
     .join('');
 }
@@ -137,7 +137,8 @@ function showTab(name) {
     if (!s) return;
     try {
       await api(`/api/admin/devices/${s.dataset.device}`, { method: 'PUT', body: { status: s.value, elderly_id: s.dataset.elderly } });
-      toast(`Device set to ${s.value}.`);
+      toast(s.value === 'Active' ? 'The ESP32 now sends readings to this person.' : `Device set to ${s.value}.`);
+      loadDevices();
     } catch (err) {
       toast(err.message);
     }

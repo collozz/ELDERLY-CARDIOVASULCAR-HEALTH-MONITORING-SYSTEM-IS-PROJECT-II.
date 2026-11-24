@@ -7,7 +7,7 @@ const path = require('path');
 const config = require('./config');
 const db = require('./db');
 const live = require('./lib/live');
-const { saveReading } = require('./lib/ingest');
+const { saveReading, activeDevice } = require('./lib/ingest');
 const { requireLogin } = require('./lib/auth');
 
 const SIMULATE_ONLY = process.argv.includes('--simulate');
@@ -110,7 +110,8 @@ app.post('/api/simulate-episode', require('./lib/auth').requireRole('Administrat
 
 setInterval(async () => {
   const deviceLive = !SIMULATE_ONLY && Date.now() - lastDeviceReading < config.FALLBACK_AFTER_MS;
-  live.setStatus({ deviceLive, simulateOnly: SIMULATE_ONLY });
+  const active = await activeDevice().catch(() => null);
+  live.setStatus({ deviceLive, simulateOnly: SIMULATE_ONLY, liveElderlyId: active && active.elderly_id, liveName: active && active.full_name });
   if (deviceLive) return;
   try {
     await saveReading(simulateReading(), 'simulator');

@@ -19,9 +19,6 @@ module.exports = {
   MQTT_URL: process.env.MQTT_URL || 'mqtt://broker.hivemq.com:1883',
   MQTT_TOPIC: 'strathmore/167071/elderly-monitor/vitals',
 
-  // Default device
-  DEFAULT_DEVICE_SERIAL: 'ESP32-001',
-
   // Backup simulator timing
   FALLBACK_AFTER_MS: 10000,
   READ_INTERVAL_MS: 3000,
