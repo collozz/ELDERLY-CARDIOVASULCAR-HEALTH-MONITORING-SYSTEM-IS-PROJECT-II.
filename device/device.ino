@@ -96,10 +96,12 @@ void startSensors() {
     pulseSensor.setup(60, 4, 2, 100, 411, 4096);
   }
 
+  Serial.print("Starting DS18B20... ");
   tempSensor.begin();
   tempSensor.setWaitForConversion(false);
   tempSensor.requestTemperatures();
-  if (tempSensor.getDeviceCount() == 0) Serial.println("DS18B20 not found, check wires and 4.7k resistor");
+  if (tempSensor.getDeviceCount() == 0) Serial.println("FAILED, check wires and 4.7k resistor");
+  else Serial.println("ok");
 }
 
 // Read new samples from the MAX30102
