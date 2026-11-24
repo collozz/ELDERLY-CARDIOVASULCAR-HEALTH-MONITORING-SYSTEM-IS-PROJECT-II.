@@ -42,6 +42,7 @@ uint32_t irBuffer[BUFFER_SIZE];
 uint32_t redBuffer[BUFFER_SIZE];
 int samples = 0;
 bool fingerOn = false;
+bool pulseOk = true;
 
 int heartRate = 0;
 int spo2 = 0;
@@ -52,6 +53,7 @@ unsigned long lastBeat = 0;
 unsigned long panicUntil = 0;
 unsigned long readingNo = 0;
 bool lastButton = HIGH;
+bool abnormal = false;
 
 void connectWiFi() {
   Serial.print("Connecting to WiFi");
@@ -85,16 +87,14 @@ void connectMQTT() {
 
 void startSensors() {
   Serial.print("Starting MAX30102... ");
-  if (!pulseSensor.begin(Wire, I2C_SPEED_FAST)) {
+  if (!pulseSensor.begin(Wire, I2C_SPEED_STANDARD)) {
     Serial.println("FAILED, check SDA/SCL/VIN/GND wires");
-    while (true) {
-      digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-      delay(200);
-    }
+    pulseOk = false;
+  } else {
+    Serial.println("ok");
+    // Brightness, averaging, red+IR mode, 100 Hz, pulse width, range
+    pulseSensor.setup(60, 4, 2, 100, 411, 4096);
   }
-  Serial.println("ok");
-  // Brightness, averaging, red+IR mode, 100 Hz, pulse width, range
-  pulseSensor.setup(60, 4, 2, 100, 411, 4096);
 
   tempSensor.begin();
   tempSensor.setWaitForConversion(false);
@@ -167,6 +167,10 @@ void publishReadings() {
   } else {
     Serial.println("Reading pulse, keep finger still");
   }
+  // Same limits as the web app defaults
+  abnormal = (heartRate > 0 && (heartRate < 50 || heartRate > 100)) ||
+             (spo2 > 0 && spo2 < 92) ||
+             (temperature > 0 && (temperature < 35.5 || temperature > 37.8));
   if (temperature > 0) doc["temperature_c"] = round(temperature * 10) / 10.0;
 
   char payload[200];
@@ -200,7 +204,7 @@ void setup() {
 }
 
 void loop() {
-  readPulseSensor();
+  if (pulseOk) readPulseSensor();
 
   connectMQTT();
   mqtt.loop();
@@ -210,8 +214,8 @@ void loop() {
   if (button == LOW && lastButton == HIGH && millis() > panicUntil) sendPanic();
   lastButton = button;
 
-  // LED: on after panic, short flash on each beat
-  bool ledOn = millis() < panicUntil || millis() - lastBeat < 100;
+  // LED: on for a panic press or abnormal readings
+  bool ledOn = millis() < panicUntil || abnormal;
   digitalWrite(LED_PIN, ledOn ? HIGH : LOW);
 
   if (millis() - lastRead >= READ_INTERVAL_MS) {
