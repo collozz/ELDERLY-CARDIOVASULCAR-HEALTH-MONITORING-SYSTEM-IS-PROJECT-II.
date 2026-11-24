@@ -30,6 +30,9 @@ const int LED_PIN    = 2;
 // IR level that means a finger is on the sensor
 const long FINGER_IR = 50000;
 
+// Below this the probe is in the air, not on the body
+const float BODY_TEMP_MIN = 30.0;
+
 // Connections and sensors
 WiFiClient espClient;
 PubSubClient mqtt(espClient);
@@ -169,11 +172,15 @@ void publishReadings() {
   } else {
     Serial.println("Reading pulse, keep finger still");
   }
+  // Probe only counts when held against the body
+  bool probeOn = temperature >= BODY_TEMP_MIN;
+  if (temperature > 0 && !probeOn) Serial.println("Hold the probe against the skin");
+
   // Same limits as the web app defaults
   abnormal = (heartRate > 0 && (heartRate < 50 || heartRate > 100)) ||
              (spo2 > 0 && spo2 < 92) ||
-             (temperature > 0 && (temperature < 35.5 || temperature > 37.8));
-  if (temperature > 0) doc["temperature_c"] = round(temperature * 10) / 10.0;
+             (probeOn && (temperature < 35.5 || temperature > 37.8));
+  if (probeOn) doc["temperature_c"] = round(temperature * 10) / 10.0;
 
   char payload[200];
   serializeJson(doc, payload);
