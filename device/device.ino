@@ -57,6 +57,7 @@ unsigned long panicUntil = 0;
 unsigned long readingNo = 0;
 bool lastButton = HIGH;
 bool abnormal = false;
+bool wasOnBody = false;
 
 void connectWiFi() {
   Serial.print("Connecting to WiFi");
@@ -174,13 +175,20 @@ void publishReadings() {
   }
   // Probe only counts when held against the body
   bool probeOn = temperature >= BODY_TEMP_MIN;
-  if (temperature > 0 && !probeOn) Serial.println("Hold the probe against the skin");
+  // Was on the body and dropped below 30 while still wearing the device
+  bool coldDrop = temperature > 0 && !probeOn && wasOnBody && fingerOn;
+  if (probeOn) wasOnBody = true;
+  else if (!fingerOn) wasOnBody = false;
+
+  if (coldDrop) Serial.println("Temperature dropped below 30 C");
+  else if (temperature > 0 && !probeOn) Serial.println("Hold the probe against the skin");
 
   // Same limits as the web app defaults
   abnormal = (heartRate > 0 && (heartRate < 50 || heartRate > 100)) ||
              (spo2 > 0 && spo2 < 92) ||
-             (probeOn && (temperature < 35.5 || temperature > 37.8));
-  if (probeOn) doc["temperature_c"] = round(temperature * 10) / 10.0;
+             (probeOn && (temperature < 35.5 || temperature > 37.8)) ||
+             coldDrop;
+  if (probeOn || coldDrop) doc["temperature_c"] = round(temperature * 10) / 10.0;
 
   char payload[200];
   serializeJson(doc, payload);
