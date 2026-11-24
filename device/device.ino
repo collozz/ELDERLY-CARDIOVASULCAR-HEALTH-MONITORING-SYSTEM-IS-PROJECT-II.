@@ -30,14 +30,15 @@ const int LED_PIN    = 2;
 // IR level that means a finger is on the sensor
 const long FINGER_IR = 50000;
 
-// Connections and sensors
+// Below this the probe is in the air, not on the body
+const float BODY_TEMP_MIN = 30.0;
+
 WiFiClient espClient;
 PubSubClient mqtt(espClient);
 MAX30105 pulseSensor;
 OneWire oneWire(TEMP_PIN);
 DallasTemperature tempSensor(&oneWire);
 
-// Sample buffers (BUFFER_SIZE = 100 comes from spo2_algorithm.h)
 uint32_t irBuffer[BUFFER_SIZE];
 uint32_t redBuffer[BUFFER_SIZE];
 int samples = 0;
@@ -54,6 +55,7 @@ unsigned long panicUntil = 0;
 unsigned long readingNo = 0;
 bool lastButton = HIGH;
 bool abnormal = false;
+bool wasOnBody = false;
 
 void connectWiFi() {
   Serial.print("Connecting to WiFi");
@@ -92,17 +94,17 @@ void startSensors() {
     pulseOk = false;
   } else {
     Serial.println("ok");
-    // Brightness, averaging, red+IR mode, 100 Hz, pulse width, range
     pulseSensor.setup(60, 4, 2, 100, 411, 4096);
   }
 
+  Serial.print("Starting DS18B20... ");
   tempSensor.begin();
   tempSensor.setWaitForConversion(false);
   tempSensor.requestTemperatures();
-  if (tempSensor.getDeviceCount() == 0) Serial.println("DS18B20 not found, check wires and 4.7k resistor");
+  if (tempSensor.getDeviceCount() == 0) Serial.println("FAILED, check wires and 4.7k resistor");
+  else Serial.println("ok");
 }
 
-// Read new samples from the MAX30102
 void readPulseSensor() {
   pulseSensor.check();
   while (pulseSensor.available()) {
@@ -124,7 +126,6 @@ void readPulseSensor() {
     samples++;
     if (samples == BUFFER_SIZE) {
       calculateVitals();
-      // Keep the newest 75 samples, refill 25
       for (int i = 25; i < BUFFER_SIZE; i++) {
         irBuffer[i - 25] = irBuffer[i];
         redBuffer[i - 25] = redBuffer[i];
@@ -134,7 +135,6 @@ void readPulseSensor() {
   }
 }
 
-// Heart rate and SpO2 from the buffer
 void calculateVitals() {
   int32_t newSpo2, newHr;
   int8_t spo2Valid, hrValid;
@@ -158,7 +158,6 @@ void publishReadings() {
   StaticJsonDocument<200> doc;
   doc["patient_id"] = PATIENT_ID;
   doc["seq"] = readingNo;
-  // No finger: send without heart rate so the server ignores it
   if (fingerOn && heartRate > 0 && spo2 > 0) {
     doc["heart_rate_bpm"] = heartRate;
     doc["spo2_percent"] = spo2;
@@ -167,11 +166,19 @@ void publishReadings() {
   } else {
     Serial.println("Reading pulse, keep finger still");
   }
-  // Same limits as the web app defaults
+  bool probeOn = temperature >= BODY_TEMP_MIN;
+  bool coldDrop = temperature > 0 && !probeOn && wasOnBody && fingerOn;
+  if (probeOn) wasOnBody = true;
+  else if (!fingerOn) wasOnBody = false;
+
+  if (coldDrop) Serial.println("Temperature dropped below 30 C");
+  else if (temperature > 0 && !probeOn) Serial.println("Hold the probe against the skin");
+
   abnormal = (heartRate > 0 && (heartRate < 50 || heartRate > 100)) ||
              (spo2 > 0 && spo2 < 92) ||
-             (temperature > 0 && (temperature < 35.5 || temperature > 37.8));
-  if (temperature > 0) doc["temperature_c"] = round(temperature * 10) / 10.0;
+             (probeOn && (temperature < 35.5 || temperature > 37.8)) ||
+             coldDrop;
+  if (probeOn || coldDrop) doc["temperature_c"] = round(temperature * 10) / 10.0;
 
   char payload[200];
   serializeJson(doc, payload);
@@ -209,12 +216,10 @@ void loop() {
   connectMQTT();
   mqtt.loop();
 
-  // Panic button
   bool button = digitalRead(BUTTON_PIN);
   if (button == LOW && lastButton == HIGH && millis() > panicUntil) sendPanic();
   lastButton = button;
 
-  // LED: on for a panic press or abnormal readings
   bool ledOn = millis() < panicUntil || abnormal;
   digitalWrite(LED_PIN, ledOn ? HIGH : LOW);
 
