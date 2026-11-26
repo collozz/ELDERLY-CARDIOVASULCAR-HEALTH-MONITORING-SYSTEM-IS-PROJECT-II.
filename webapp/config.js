@@ -27,7 +27,7 @@ module.exports = {
   READ_INTERVAL_MS: 3000,
 
   // Time between alerts
-  ALERT_COOLDOWN_MS: 2 * 60 * 1000,
+  ALERT_COOLDOWN_MS: 30 * 1000,
 
   // Critical alert margins
   CRITICAL_MARGIN: { heart_rate_bpm: 20, temperature_c: 0.7, spo2_percent: 2 },
