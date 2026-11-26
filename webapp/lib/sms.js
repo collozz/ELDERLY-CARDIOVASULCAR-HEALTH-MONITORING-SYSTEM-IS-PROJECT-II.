@@ -12,9 +12,13 @@ function normalisePhone(phone) {
   return /^\+\d{9,15}$/.test(p) ? p : null;
 }
 
+// Reason the last SMS failed
+let lastError = '';
+
 // Send one SMS, returns 'Sent' or 'Failed'
 async function sendSms(phone, message) {
   const to = normalisePhone(phone);
+  lastError = '';
   if (!to) {
     console.log(`[SMS not sent] invalid phone number "${phone || ''}"`);
     return 'Failed';
@@ -38,12 +42,14 @@ async function sendSms(phone, message) {
     try { data = JSON.parse(text); } catch (e) {}
     const r = ((data.SMSMessageData || {}).Recipients || [])[0];
     const ok = res.ok && r && (r.status === 'Success' || [100, 101, 102].includes(r.statusCode));
+    lastError = ok ? '' : r ? r.status : data.errorMessage || text.slice(0, 120);
     console.log(`[SMS ${ok ? 'sent' : 'failed'} to ${to}] ${r ? r.status : text.slice(0, 120)}`);
     return ok ? 'Sent' : 'Failed';
   } catch (err) {
+    lastError = err.message;
     console.log(`[SMS failed to ${to}] ${err.message}`);
     return 'Failed';
   }
 }
 
-module.exports = { sendSms, normalisePhone, mode };
+module.exports = { sendSms, normalisePhone, mode, lastError: () => lastError };
